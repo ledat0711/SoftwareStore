@@ -67,6 +67,12 @@ const authConfig = {
       if (session.user) session.user.role = (token.role as "ADMIN" | "USER") ?? "USER"
       return session
     },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(baseUrl)) return url
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      return baseUrl
+    },
   },
 
   secret: process.env.AUTH_SECRET,
