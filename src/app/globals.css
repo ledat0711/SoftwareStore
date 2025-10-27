@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* --- LOGIN FORM CUSTOM STYLES --- */
+.login-container {
+  @apply min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200;
+}
+
+.login-card {
+  @apply max-w-6xl w-full flex flex-col md:flex-row bg-white shadow-2xl rounded-3xl overflow-hidden border border-gray-100;
+}
+
+.login-left {
+  @apply hidden md:flex md:w-1/2 bg-gray-100 items-center justify-center p-10;
+}
+
+.login-right {
+  @apply w-full md:w-1/2 p-10 flex flex-col justify-center;
+}
+
+.login-button {
+  @apply w-full flex items-center justify-center gap-3 border border-gray-200 py-3 rounded-xl 
+          hover:bg-gray-50 active:bg-gray-100 font-medium text-gray-700 
+          transition-all duration-200 shadow-sm hover:shadow-md;
+}
