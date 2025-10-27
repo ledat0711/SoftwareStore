@@ -6,6 +6,7 @@ const ADMIN_EMAILS = new Set(["leanhdat1994@gmail.com"])
 
 export async function POST() {
   const emails = ["leanhdat1994@gmail.com", "ledatdn94@gmail.com"]
+  console.log("test")
   await Promise.all(
     emails.map((email) =>
       prisma.user.updateMany({
