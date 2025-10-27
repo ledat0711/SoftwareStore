@@ -13,7 +13,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { status } = useSession()
 
-  // Nếu đã đăng nhập, tự động về trang chủ
+  // Nếu đã đăng nhập, tự động về Hompage "localhost:3000/"
   useEffect(() => {
     if (status === "authenticated") {
       router.replace("/")

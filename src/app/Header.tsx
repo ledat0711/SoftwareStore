@@ -10,7 +10,7 @@ export default function Header() {
     <header className="w-full bg-white shadow-md py-4 px-8">
       <nav className="flex justify-between items-center">
         <Link href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
-          Trading Software
+          Software Store
         </Link>
         <div className="flex items-center space-x-4">
           {session ? (

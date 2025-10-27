@@ -4,13 +4,13 @@ export default function HomePage() {
   const slides = [
     {
       id: "s1",
-      title: "Welcome to Trading Software",
-      subtitle: "Nhanh, đơn giản, hiệu quả",
+      title: "Welcome to Software Store",
+      //subtitle: "Nhanh, đơn giản, hiệu quả",
       bg: "linear-gradient(135deg,#d1fae5,#bfdbfe)",
     },
     {
       id: "s2",
-      title: "Trade Smarter",
+      title: "Performance Optimization",
       subtitle: "Công cụ tối ưu hiệu suất",
       bg: "linear-gradient(135deg,#fde68a,#fecaca)",
     },
