@@ -7,7 +7,7 @@ export default function HomePage() {
   const { data: session, status } = useSession();
 
   const role = (session?.user as any)?.role
-  const roleString  = role === "ADMIN" ? "Admin" : role === "USER" ? "User" : "Customer"
+  const roleString  = role === "ADMIN" ? "Admin" : role === "USER" ? "User" : "Not signed in"
 
   const slides = [
     {
