@@ -24,16 +24,15 @@ export default function Slider({ items, interval = 4000 }: { items: Slide[]; int
       <div
         style={{
           display: "flex",
-          width: `${items.length * 100}%`,
-          transform: `translateX(-${i * (100 / items.length)}%)`,
-          transition: "transform .5s ease",
+          transition: "transform 0.8s ease",
+          transform: `translateX(-${i * 100}%)`,
         }}
       >
         {items.map((s) => (
           <div
             key={s.id}
             style={{
-              flex: "0 0 100%",
+              minWidth: "100%",
               height: 320,
               background: s.bg,
               color: "#111827",
@@ -42,6 +41,7 @@ export default function Slider({ items, interval = 4000 }: { items: Slide[]; int
               justifyContent: "center",
               flexDirection: "column",
               gap: 8,
+              flexShrink: 0,
             }}
           >
             <div style={{ fontSize: 28, fontWeight: 700 }}>{s.title}</div>
