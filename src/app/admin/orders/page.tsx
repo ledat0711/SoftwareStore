@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
+// Test
+
 export default async function AdminOrdersPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
