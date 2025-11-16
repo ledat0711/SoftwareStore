@@ -1,14 +1,33 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
 }
- 
+
 generator client {
   provider = "prisma-client-js"
-  engineType = "edge"
 }
- 
+
+enum Department {
+  Apps
+  Games
+}
+
+enum Platform {
+  PC
+  Mobile
+}
+
+model Product {
+  id        String  @id @default(cuid())
+  title     String
+  price     Float
+  image     String
+  department String
+  platform   String
+  hidden    Boolean @default(false) // NEW
+  createdAt  DateTime   @default(now())
+}
+
 enum Role {
   USER
   ADMIN

@@ -2,154 +2,137 @@
 
 import Link from "next/link";
 import { auth } from "@/auth";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { redirect } from "next/navigation";
 
 type Product = {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  department: "Apps" | "Games";
-  platform: "PC" | "Mobile";
+  id: string
+  title: string
+  price: number
+  image: string
+  department: "Apps" | "Games"
+  platform: "PC" | "Mobile"
+  hidden?: boolean
 };
 
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    title: "HEVC Video Extensions",
-    price: 0.99,
-    image: "https://store-images.s-microsoft.com/image/apps.45904.13748617810036542.da613a45-e095-4f0f-89c6-c62a954ef739.d2043d21-bf63-4ac8-b3b3-ed78dfd7f21b?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "2",
-    title: "Crosshair X",
-    price: 4.99,
-    image: "https://store-images.s-microsoft.com/image/apps.59474.14083481012137053.8dd52c3f-852b-4b54-a82f-7927fdfb0143.0abe2b61-f53a-4bd0-8617-7b2f06edcb92?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "3",
-    title: "Console Remote",
-    price: 2.99,
-    image: "https://store-images.s-microsoft.com/image/apps.33094.14234910285708481.a0876a35-0be1-479b-84c2-9f6c2c59444c.f4339c38-dd1d-4b37-97d7-f7c94102c754?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "4",
-    title: "Sketchbook Pro",
-    price: 24.99,
-    image: "https://store-images.s-microsoft.com/image/apps.3040.13784310836114466.5a27e793-6945-4bf0-ac54-edf49c480153.1cf3eccf-63ff-4c7e-85a3-27f162f05473?q=90&w=256&h=256&mode=crop&format=jpg&background=%23e55932",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "5",
-    title: "Movie Maker PRO",
-    price: 19.99,
-    image: "https://store-images.s-microsoft.com/image/apps.33814.13535614984864253.bb480d78-6f4e-4b98-a765-e5d92add2349.132d8023-d50f-44c7-b015-3ee7b42f69a3?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "6",
-    title: "FL Studio Mobile",
-    price: 14.99,
-    image: "https://store-images.s-microsoft.com/image/apps.26481.13510798886194062.a8723b4e-10eb-4a60-9e90-9eea5522dc22.04b25d44-e17f-4cb3-9f5b-2f0c443eb124?q=90&w=256&h=256&mode=crop&format=jpg&background=%23000000",
-    department: "Apps",
-    platform: "Mobile",
-  },
-  {
-    id: "7",
-    title: "KDL Reader",
-    price: 4.99,
-    image: "https://store-images.s-microsoft.com/image/apps.37792.13617369643691955.418a2184-adf9-4d84-a416-fe12b96c757a.aa3c8e7f-5613-4906-b530-cb457810f936?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "8",
-    title: "paint.net",
-    price: 14.99,
-    image: "https://store-images.s-microsoft.com/image/apps.55350.13517568566615301.c4a23598-9da0-403a-8afb-ffae9aaa8b09.028037dd-816c-4341-ad30-c452bbd5c377?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "9",
-    title: "AMD Control Panel",
-    price: 1.89,
-    image: "https://store-images.s-microsoft.com/image/apps.32168.13579921092032955.ff7b7461-1b03-4b95-9e1e-998b4d64214f.78f6669e-9cb6-4125-8d60-1007d22097b7?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "10",
-    title: "Files App",
-    price: 9.99,
-    image: "https://store-images.s-microsoft.com/image/apps.47586.13649428968955623.bcfc493a-7fd6-4231-9ddd-1c511b1330ad.ec1252e4-8d49-4736-9280-6b53752cb9dc?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "11",
-    title: "MagicPods",
-    price: 1.99,
-    image: "https://store-images.s-microsoft.com/image/apps.53303.14618260366605914.2a7c8e5b-2e7b-44d4-b57c-332c38e866f5.4c813c43-f2cd-47ec-b3ca-3c795fe5711e?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "12",
-    title: "Diarium: Journal & Diary",
-    price: 19.99,
-    image: "https://store-images.s-microsoft.com/image/apps.54913.13510798887514892.b120a9af-a4c0-4320-be23-10113a787ed6.d393aafc-5e3e-4db4-bc28-55d1267d53b7?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-  {
-    id: "13",
-    title: "Call of Duty®: Warzone™",
-    price: 21.75,
-    image: "https://store-images.s-microsoft.com/image/apps.703.13739535057760905.34778648-088c-45a3-9d45-1117ca041901.c4d90513-3be4-4a22-9cd6-85a7ffa8df7f?q=90&w=540&h=810&mode=crop&format=jpg&background=%23FFFFFF",
-    department: "Games",
-    platform: "PC",
-  },
-  {
-    id: "14",
-    title: "Diarium: Journal & Diary",
-    price: 19.99,
-    image: "https://store-images.s-microsoft.com/image/apps.54913.13510798887514892.b120a9af-a4c0-4320-be23-10113a787ed6.d393aafc-5e3e-4db4-bc28-55d1267d53b7?q=90&w=256&h=256&mode=crop&format=jpg&background=%230078D7",
-    department: "Apps",
-    platform: "PC",
-  },
-];
-
 export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([])  // start empty
+
+  // load từ DB
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((data: Product[]) => setProducts(data))
+      .catch(() => setProducts([]))
+  }, [])
+
+  // NEW: state form thêm mới
+  const [newProd, setNewProd] = useState<Omit<Product, "id">>({
+    title: "",
+    price: 0,
+    image: "",
+    department: "Apps",
+    platform: "PC",
+    hidden: false, // NEW
+  })
+
   const [filters, setFilters] = useState<{
     department: ("Apps" | "Games")[];
     platform: ("PC" | "Mobile")[];
   }>({
     department: [],
     platform: [],
-  });
+  })
 
   const filtered = useMemo(() => {
-    return mockProducts.filter((p) => {
-      const depOk =
-        filters.department.length ? filters.department.includes(p.department) : true;
-      const platOk =
-        filters.platform.length ? filters.platform.includes(p.platform) : true;
-      return depOk && platOk;
-    });
-  }, [filters]);
+    return products.filter((p) => {
+      const depOk = filters.department.length ? filters.department.includes(p.department) : true
+      const platOk = filters.platform.length ? filters.platform.includes(p.platform) : true
+      return depOk && platOk
+    })
+  }, [filters, products])
 
   function toggle<T extends string>(arr: T[], val: T) {
     return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+  }
+
+  // NEW: Edit state
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState<Omit<Product, "id"> | null>(null)
+  const [saving, setSaving] = useState(false)
+  // NEW: trạng thái xoá
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [hidingId, setHidingId] = useState<string | null>(null)
+
+  function startEdit(p: Product) {
+    setEditingId(p.id)
+    setEditDraft({
+      title: p.title,
+      price: p.price,
+      image: p.image,
+      department: p.department,
+      platform: p.platform,
+    })
+  }
+  
+  function cancelEdit() {
+    setEditingId(null)
+    setEditDraft(null)
+  }
+
+  async function saveEdit() {
+    if (!editingId || !editDraft) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/products/${editingId}`, {
+        method: "PUT", // change to PATCH if your API uses it
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editDraft),
+      })
+      if (!res.ok) throw new Error("Update failed")
+      const updated: Product = await res.json()
+      setProducts(prev => prev.map(p => (p.id === updated.id ? updated : p)))
+      cancelEdit()
+    } catch (e) {
+      // noop or show a toast
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // NEW: hàm xoá sản phẩm
+  async function deleteProduct(id: string) {
+    if (!confirm("Xóa sản phẩm này?")) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Delete failed")
+      setProducts(prev => prev.filter(p => p.id !== id))
+      if (editingId === id) cancelEdit()
+    } catch (e) {
+      // có thể hiển thị toast
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  // NEW: Toggle ẩn/hiện
+  async function toggleHidden(p: Product) {
+    const nextHidden = !p.hidden
+    setHidingId(p.id)
+    try {
+      const res = await fetch(`/api/products/${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden: nextHidden }),
+      })
+      if (!res.ok) throw new Error("Toggle hide failed")
+      const updated: Product = await res.json()
+      setProducts(prev => prev.map(x => (x.id === updated.id ? updated : x)))
+      if (editingId === p.id && nextHidden) cancelEdit()
+    } finally {
+      setHidingId(null)
+    }
   }
 
   return (
@@ -161,6 +144,74 @@ export default function AdminProductsPage() {
 
         <div className="layout">
           <aside className="sidebar">
+            {/* NEW: Form thêm sản phẩm */}
+            <form
+              className="add-form"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                const payload = { ...newProd }
+                const res = await fetch("/api/products", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                })
+                if (!res.ok) return
+                const created: Product = await res.json()
+                setProducts((prev) => [created, ...prev])   // prepend
+                setNewProd({ title: "", price: 0, image: "", department: "Apps", platform: "PC", hidden: false })
+              }}
+            >
+              <h3>Thêm sản phẩm</h3>
+              <input
+                className="in"
+                placeholder="Tên sản phẩm"
+                value={newProd.title}
+                onChange={(e) => setNewProd({ ...newProd, title: e.target.value })}
+                required
+              />
+              <input
+                className="in"
+                placeholder="Giá"
+                type="number"
+                min="0"
+                step="0.01"
+                value={newProd.price}
+                onChange={(e) => setNewProd({ ...newProd, price: parseFloat(e.target.value || "0") })}
+                required
+              />
+              <input
+                className="in"
+                placeholder="Image URL"
+                value={newProd.image}
+                onChange={(e) => setNewProd({ ...newProd, image: e.target.value })}
+                required
+              />
+              <div className="row">
+                <select
+                  className="in"
+                  value={newProd.department}
+                  onChange={(e) =>
+                    setNewProd({ ...newProd, department: e.target.value as Product["department"] })
+                  }
+                >
+                  <option value="Apps">Apps</option>
+                  <option value="Games">Games</option>
+                </select>
+                <select
+                  className="in"
+                  value={newProd.platform}
+                  onChange={(e) =>
+                    setNewProd({ ...newProd, platform: e.target.value as Product["platform"] })
+                  }
+                >
+                  <option value="PC">PC</option>
+                  <option value="Mobile">Mobile</option>
+                </select>
+              </div>
+              <button className="btn primary" type="submit">Add</button>
+            </form>
+
+            {/* ...existing code... bộ lọc */}
             <div className="filter-group">
               <h3>Departments</h3>
               {(["Apps", "Games"] as const).map((dep) => (
@@ -195,22 +246,105 @@ export default function AdminProductsPage() {
           </aside>
 
           <section className="grid">
-            {filtered.map((p) => (
-              <article key={p.id} className="card">
-                <div className="thumb">
-                  <img src={p.image} alt={p.title} />
-                </div>
-                <div className="body">
-                  <a className="title" href="#">{p.title}</a>
-                  <div className="price">${p.price.toFixed(2)}</div>
-                </div>
-                <div className="actions">
-                  <button className="btn">Edit</button>
-                  <button className="btn">Hide</button>
-                  <button className="btn danger">Delete</button>
-                </div>
-              </article>
-            ))}
+            {filtered.map((p) => {
+              const isEditing = editingId === p.id
+              return (
+                <article key={p.id} className={`card ${p.hidden ? "is-hidden" : ""}`}>
+                  <div className="thumb">
+                    <img src={isEditing && editDraft ? editDraft.image : p.image} alt={p.title} />
+                  </div>
+
+                  {!isEditing && (
+                    <>
+                      <div className="body">
+                        <a className="title" href="#">{p.title}</a>
+                        <div className="price">${p.price.toFixed(2)}</div>
+                        {p.hidden && <small style={{color:"#9ca3af"}}>Hidden</small>}
+                      </div>
+                      <div className="actions">
+                        <button className="btn" onClick={() => startEdit(p)} disabled={deletingId === p.id || hidingId === p.id}>Edit</button>
+                        <button
+                          className="btn"
+                          onClick={() => toggleHidden(p)}
+                          disabled={deletingId === p.id || hidingId === p.id}
+                        >
+                          {hidingId === p.id ? "Updating..." : p.hidden ? "Unhide" : "Hide"}
+                        </button>
+                        <button
+                          className="btn danger"
+                          onClick={() => deleteProduct(p.id)}
+                          disabled={deletingId === p.id || hidingId === p.id}
+                        >
+                          {deletingId === p.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {isEditing && editDraft && (
+                    <div className="body">
+                      <input
+                        className="in"
+                        placeholder="Tên sản phẩm"
+                        value={editDraft.title}
+                        onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
+                      />
+                      <input
+                        className="in"
+                        placeholder="Giá"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editDraft.price}
+                        onChange={(e) =>
+                          setEditDraft({ ...editDraft, price: parseFloat(e.target.value || "0") })
+                        }
+                      />
+                      <input
+                        className="in"
+                        placeholder="Image URL"
+                        value={editDraft.image}
+                        onChange={(e) => setEditDraft({ ...editDraft, image: e.target.value })}
+                      />
+                      <div className="row">
+                        <select
+                          className="in"
+                          value={editDraft.department}
+                          onChange={(e) =>
+                            setEditDraft({
+                              ...editDraft,
+                              department: e.target.value as Product["department"],
+                            })
+                          }
+                        >
+                          <option value="Apps">Apps</option>
+                          <option value="Games">Games</option>
+                        </select>
+                        <select
+                          className="in"
+                          value={editDraft.platform}
+                          onChange={(e) =>
+                            setEditDraft({
+                              ...editDraft,
+                              platform: e.target.value as Product["platform"],
+                            })
+                          }
+                        >
+                          <option value="PC">PC</option>
+                          <option value="Mobile">Mobile</option>
+                        </select>
+                      </div>
+                      <div className="actions">
+                        <button className="btn primary" onClick={saveEdit} disabled={saving}>
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+                        <button className="btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              )
+            })}
           </section>
         </div>
       </main>
@@ -339,6 +473,7 @@ export default function AdminProductsPage() {
           box-shadow: 0 4px 14px rgba(0,0,0,0.15);
           transform: translateY(-2px);
         }
+        .card.is-hidden { opacity: .6; }
         .thumb {
           width: 100%;
           height: 180px;          /* cao hơn để ảnh lớn */
@@ -393,6 +528,24 @@ export default function AdminProductsPage() {
         .btn.danger:hover {
           background: #fef2f2;
         }
+        .add-form {
+          display: grid;
+          gap: 8px;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .add-form h3 { margin: 0; font-size: 14px; }
+        .in {
+          width: 100%;
+          padding: 8px 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 13px;
+          box-sizing: border-box;
+        }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn.primary { background: #10b981; border-color: #10b981; color: #fff; }
         @media (max-width: 900px) {
           .layout {
             grid-template-columns: 1fr;
@@ -400,5 +553,5 @@ export default function AdminProductsPage() {
         }
       `}</style>
     </div>
-  );
+  )
 }
