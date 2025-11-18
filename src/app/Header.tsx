@@ -2,27 +2,10 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
 import NavBar from "@/components/NavBar";
 
 export default function Header() {
   const { data: session } = useSession();
-  const pathname = usePathname();
-
-  const role = (session?.user as any)?.role as string | undefined;
-  const isAdmin = role === "ADMIN";
-
-  type NavItem = { label: string; href: string };
-  const baseItems: NavItem[] = [
-    { label: "Best Sellers", href: "/best-sellers" },
-    { label: "New Releases", href: "/new-releases" },
-  ];
-  const adminItems: NavItem[] = [
-    { label: "Quản lý sản phẩm", href: "/admin/products" },
-    { label: "Quản lý đơn hàng", href: "/admin/orders" },
-    { label: "Quản lý người dùng", href: "/admin/users" },
-  ];
-  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
 
   return (
     <header className="w-full bg-white shadow-md">
