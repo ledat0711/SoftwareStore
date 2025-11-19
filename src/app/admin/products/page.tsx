@@ -6,13 +6,18 @@ import { useEffect, useMemo, useState } from "react";
 import { redirect } from "next/navigation";
 
 type Product = {
-  id: string
-  title: string
-  price: number
-  image: string
-  department: "Apps" | "Games"
-  platform: "PC" | "Mobile"
-  hidden?: boolean
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  image: string;
+  price: number;
+  rating?: number;
+  category?: string;
+  badge?: string;
+  department: "Apps" | "Games";
+  platform: "PC" | "Mobile";
+  hidden?: boolean;
 };
 
 export default function AdminProductsPage() {
@@ -28,12 +33,17 @@ export default function AdminProductsPage() {
 
   // NEW: state form thêm mới
   const [newProd, setNewProd] = useState<Omit<Product, "id">>({
+    slug: "",
     title: "",
-    price: 0,
+    description: "",
     image: "",
+    price: 0,
+    rating: 0,
+    category: "",
+    badge: "",
     department: "Apps",
     platform: "PC",
-    hidden: false, // NEW
+    hidden: false,
   })
 
   const [filters, setFilters] = useState<{
@@ -67,6 +77,7 @@ export default function AdminProductsPage() {
   function startEdit(p: Product) {
     setEditingId(p.id)
     setEditDraft({
+      slug: p.slug,
       title: p.title,
       price: p.price,
       image: p.image,
@@ -157,8 +168,8 @@ export default function AdminProductsPage() {
                 })
                 if (!res.ok) return
                 const created: Product = await res.json()
-                setProducts((prev) => [created, ...prev])   // prepend
-                setNewProd({ title: "", price: 0, image: "", department: "Apps", platform: "PC", hidden: false })
+                setProducts((prev) => [created, ...prev])   // prepend newly created product
+                setNewProd({ slug: "", title: "", description: "", image: "", price: 0, rating: 0, category: "", badge: "", department: "Apps", platform: "PC", hidden: false })
               }}
             >
               <h3>Thêm sản phẩm</h3>

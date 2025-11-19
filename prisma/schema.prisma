@@ -18,14 +18,23 @@ enum Platform {
 }
 
 model Product {
-  id        String  @id @default(cuid())
-  title     String
-  price     Float
-  image     String
-  department String
-  platform   String
-  hidden    Boolean @default(false) // NEW
-  createdAt  DateTime   @default(now())
+  id          String   @id @default(cuid())
+  slug        String   @unique       // dùng cho URL /products/xxx
+  title       String                // tên hiển thị
+  description String?
+  image       String
+  price       Float
+  rating      Float?                // optional
+  category    String?               // optional
+  badge       String?               // optional
+
+  department  String?               // Apps / Games / Office / Security...
+  platform    String?               // PC / Mobile / All…
+
+  hidden      Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
