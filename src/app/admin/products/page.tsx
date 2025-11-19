@@ -1,38 +1,56 @@
 "use client";
 
-import Link from "next/link";
-import { auth } from "@/auth";
 import { useEffect, useMemo, useState } from "react";
-import { redirect } from "next/navigation";
+
+/* ----------------- Types ----------------- */
 
 type Product = {
   id: string;
   slug: string;
   title: string;
-  description?: string;
+  description: string | null;
   image: string;
   price: number;
-  rating?: number;
-  category?: string;
-  badge?: string;
-  department: "Apps" | "Games";
-  platform: "PC" | "Mobile";
-  hidden?: boolean;
+  rating: number | null;
+  category: string | null;
+  badge: string | null;
+  department: string;
+  platform: string;
+  hidden: boolean;
 };
 
+type ProductForm = Omit<Product, "id">;
+
+/* ----------------- Helpers ----------------- */
+
+function slugify(str: string) {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
+function toggle<T extends string>(arr: T[], val: T) {
+  return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+}
+
+/* ----------------- Component ----------------- */
+
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>([])  // start empty
+  const [products, setProducts] = useState<Product[]>([]);
 
   // load từ DB
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
       .then((data: Product[]) => setProducts(data))
-      .catch(() => setProducts([]))
-  }, [])
+      .catch(() => setProducts([]));
+  }, []);
 
-  // NEW: state form thêm mới
-  const [newProd, setNewProd] = useState<Omit<Product, "id">>({
+  // ----- Form thêm mới -----
+  const [newProd, setNewProd] = useState<ProductForm>({
     slug: "",
     title: "",
     description: "",
@@ -41,145 +59,222 @@ export default function AdminProductsPage() {
     rating: 0,
     category: "",
     badge: "",
-    department: "Apps",
-    platform: "PC",
+    department: "Software",
+    platform: "All",
     hidden: false,
-  })
+  });
 
+  // ----- Filter -----
   const [filters, setFilters] = useState<{
-    department: ("Apps" | "Games")[];
-    platform: ("PC" | "Mobile")[];
+    department: string[];
+    platform: string[];
   }>({
     department: [],
     platform: [],
-  })
+  });
+
+  // option filter động từ DB + giá trị mặc định
+  const departmentOptions = useMemo(() => {
+    const base = ["Software", "Apps", "Games"];
+    const fromDb = products.map((p) => p.department);
+    return Array.from(new Set([...base, ...fromDb])).filter(Boolean);
+  }, [products]);
+
+  const platformOptions = useMemo(() => {
+    const base = ["All", "PC", "Mobile"];
+    const fromDb = products.map((p) => p.platform);
+    return Array.from(new Set([...base, ...fromDb])).filter(Boolean);
+  }, [products]);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const depOk = filters.department.length ? filters.department.includes(p.department) : true
-      const platOk = filters.platform.length ? filters.platform.includes(p.platform) : true
-      return depOk && platOk
-    })
-  }, [filters, products])
+      const depOk =
+        filters.department.length > 0
+          ? filters.department.includes(p.department)
+          : true;
+      const platOk =
+        filters.platform.length > 0
+          ? filters.platform.includes(p.platform)
+          : true;
+      return depOk && platOk;
+    });
+  }, [filters, products]);
 
-  function toggle<T extends string>(arr: T[], val: T) {
-    return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
-  }
+  // ----- Edit state -----
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<ProductForm | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // NEW: Edit state
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editDraft, setEditDraft] = useState<Omit<Product, "id"> | null>(null)
-  const [saving, setSaving] = useState(false)
-  // NEW: trạng thái xoá
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [hidingId, setHidingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [hidingId, setHidingId] = useState<string | null>(null);
 
   function startEdit(p: Product) {
-    setEditingId(p.id)
+    setEditingId(p.id);
     setEditDraft({
       slug: p.slug,
       title: p.title,
-      price: p.price,
+      description: p.description ?? "",
       image: p.image,
+      price: p.price,
+      rating: p.rating ?? 0,
+      category: p.category ?? "",
+      badge: p.badge ?? "",
       department: p.department,
       platform: p.platform,
-    })
+      hidden: p.hidden ?? false,
+    });
   }
-  
+
   function cancelEdit() {
-    setEditingId(null)
-    setEditDraft(null)
+    setEditingId(null);
+    setEditDraft(null);
   }
 
+  // ----- Save Edit -----
   async function saveEdit() {
-    if (!editingId || !editDraft) return
-    setSaving(true)
+    if (!editingId || !editDraft) return;
+    setSaving(true);
     try {
+      const payload: ProductForm = {
+        ...editDraft,
+        slug: editDraft.slug || slugify(editDraft.title),
+      };
+
       const res = await fetch(`/api/products/${editingId}`, {
-        method: "PUT", // change to PATCH if your API uses it
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editDraft),
-      })
-      if (!res.ok) throw new Error("Update failed")
-      const updated: Product = await res.json()
-      setProducts(prev => prev.map(p => (p.id === updated.id ? updated : p)))
-      cancelEdit()
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Update failed");
+
+      const updated: Product = await res.json();
+      setProducts((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+      cancelEdit();
     } catch (e) {
-      // noop or show a toast
+      console.error(e);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
-  // NEW: hàm xoá sản phẩm
+  // ----- Delete -----
   async function deleteProduct(id: string) {
-    if (!confirm("Xóa sản phẩm này?")) return
-    setDeletingId(id)
+    if (!confirm("Xóa sản phẩm này?")) return;
+    setDeletingId(id);
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Delete failed")
-      setProducts(prev => prev.filter(p => p.id !== id))
-      if (editingId === id) cancelEdit()
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      if (editingId === id) cancelEdit();
     } catch (e) {
-      // có thể hiển thị toast
+      console.error(e);
     } finally {
-      setDeletingId(null)
+      setDeletingId(null);
     }
   }
 
-  // NEW: Toggle ẩn/hiện
+  // ----- Toggle hidden -----
   async function toggleHidden(p: Product) {
-    const nextHidden = !p.hidden
-    setHidingId(p.id)
+    const nextHidden = !p.hidden;
+    setHidingId(p.id);
     try {
       const res = await fetch(`/api/products/${p.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hidden: nextHidden }),
-      })
-      if (!res.ok) throw new Error("Toggle hide failed")
-      const updated: Product = await res.json()
-      setProducts(prev => prev.map(x => (x.id === updated.id ? updated : x)))
-      if (editingId === p.id && nextHidden) cancelEdit()
+      });
+      if (!res.ok) throw new Error("Toggle hide failed");
+      const updated: Product = await res.json();
+      setProducts((prev) =>
+        prev.map((x) => (x.id === updated.id ? updated : x))
+      );
+      if (editingId === p.id && nextHidden) cancelEdit();
+    } catch (e) {
+      console.error(e);
     } finally {
-      setHidingId(null)
+      setHidingId(null);
     }
   }
+
+  // ----- Submit tạo mới -----
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+
+    const payload: ProductForm = {
+      ...newProd,
+      slug: newProd.slug || slugify(newProd.title),
+    };
+
+    const res = await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) return;
+
+    const created: Product = await res.json();
+    setProducts((prev) => [created, ...prev]);
+    setNewProd({
+      slug: "",
+      title: "",
+      description: "",
+      image: "",
+      price: 0,
+      rating: 0,
+      category: "",
+      badge: "",
+      department: "Software",
+      platform: "All",
+      hidden: false,
+    });
+  }
+
+  /* ----------------- JSX ----------------- */
 
   return (
     <div className="page">
       <main className="content">
         <section className="headline">
-          <h1>Apps & Games</h1>
+          <h1>Admin: Product Management</h1>
         </section>
 
         <div className="layout">
           <aside className="sidebar">
-            {/* NEW: Form thêm sản phẩm */}
-            <form
-              className="add-form"
-              onSubmit={async (e) => {
-                e.preventDefault()
-                const payload = { ...newProd }
-                const res = await fetch("/api/products", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
-                })
-                if (!res.ok) return
-                const created: Product = await res.json()
-                setProducts((prev) => [created, ...prev])   // prepend newly created product
-                setNewProd({ slug: "", title: "", description: "", image: "", price: 0, rating: 0, category: "", badge: "", department: "Apps", platform: "PC", hidden: false })
-              }}
-            >
+            {/* Form thêm sản phẩm */}
+            <form className="add-form" onSubmit={handleCreate}>
               <h3>Thêm sản phẩm</h3>
+
               <input
                 className="in"
                 placeholder="Tên sản phẩm"
                 value={newProd.title}
-                onChange={(e) => setNewProd({ ...newProd, title: e.target.value })}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, title: e.target.value })
+                }
                 required
               />
+
+              <input
+                className="in"
+                placeholder="Slug (nếu bỏ trống sẽ tự tạo)"
+                value={newProd.slug}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, slug: e.target.value })
+                }
+              />
+
+              <textarea
+                className="in"
+                placeholder="Description"
+                rows={3}
+                value={newProd.description ?? ""}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, description: e.target.value })
+                }
+              />
+
               <input
                 className="in"
                 placeholder="Giá"
@@ -187,51 +282,118 @@ export default function AdminProductsPage() {
                 min="0"
                 step="0.01"
                 value={newProd.price}
-                onChange={(e) => setNewProd({ ...newProd, price: parseFloat(e.target.value || "0") })}
+                onChange={(e) =>
+                  setNewProd({
+                    ...newProd,
+                    price: parseFloat(e.target.value || "0"),
+                  })
+                }
                 required
               />
+
+              <input
+                className="in"
+                placeholder="Rating (0–5)"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={newProd.rating ?? 0}
+                onChange={(e) =>
+                  setNewProd({
+                    ...newProd,
+                    rating: parseFloat(e.target.value || "0"),
+                  })
+                }
+              />
+
+              <input
+                className="in"
+                placeholder="Category"
+                value={newProd.category ?? ""}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, category: e.target.value })
+                }
+              />
+
+              <input
+                className="in"
+                placeholder="Badge (optional)"
+                value={newProd.badge ?? ""}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, badge: e.target.value })
+                }
+              />
+
               <input
                 className="in"
                 placeholder="Image URL"
                 value={newProd.image}
-                onChange={(e) => setNewProd({ ...newProd, image: e.target.value })}
+                onChange={(e) =>
+                  setNewProd({ ...newProd, image: e.target.value })
+                }
                 required
               />
+
               <div className="row">
                 <select
                   className="in"
                   value={newProd.department}
                   onChange={(e) =>
-                    setNewProd({ ...newProd, department: e.target.value as Product["department"] })
+                    setNewProd({ ...newProd, department: e.target.value })
                   }
                 >
-                  <option value="Apps">Apps</option>
-                  <option value="Games">Games</option>
+                  {departmentOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
                 </select>
+
                 <select
                   className="in"
                   value={newProd.platform}
                   onChange={(e) =>
-                    setNewProd({ ...newProd, platform: e.target.value as Product["platform"] })
+                    setNewProd({ ...newProd, platform: e.target.value })
                   }
                 >
-                  <option value="PC">PC</option>
-                  <option value="Mobile">Mobile</option>
+                  {platformOptions.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <button className="btn primary" type="submit">Add</button>
+
+              <label className="chk" style={{ marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={newProd.hidden}
+                  onChange={(e) =>
+                    setNewProd({ ...newProd, hidden: e.target.checked })
+                  }
+                />
+                <span>Hidden</span>
+              </label>
+
+              <button className="btn primary" type="submit">
+                Add
+              </button>
             </form>
 
-            {/* ...existing code... bộ lọc */}
+            {/* Filter */}
             <div className="filter-group">
               <h3>Departments</h3>
-              {(["Apps", "Games"] as const).map((dep) => (
+              {departmentOptions.map((dep) => (
                 <label key={dep} className="chk">
                   <input
                     type="checkbox"
                     checked={filters.department.includes(dep)}
                     onChange={() =>
-                      setFilters((f) => ({ ...f, department: toggle(f.department, dep) }))
+                      setFilters((f) => ({
+                        ...f,
+                        department: toggle(f.department, dep),
+                      }))
                     }
                   />
                   <span>{dep}</span>
@@ -241,13 +403,16 @@ export default function AdminProductsPage() {
 
             <div className="filter-group">
               <h3>Available on</h3>
-              {(["PC", "Mobile"] as const).map((p) => (
+              {platformOptions.map((p) => (
                 <label key={p} className="chk">
                   <input
                     type="checkbox"
                     checked={filters.platform.includes(p)}
                     onChange={() =>
-                      setFilters((f) => ({ ...f, platform: toggle(f.platform, p) }))
+                      setFilters((f) => ({
+                        ...f,
+                        platform: toggle(f.platform, p),
+                      }))
                     }
                   />
                   <span>{p}</span>
@@ -256,30 +421,83 @@ export default function AdminProductsPage() {
             </div>
           </aside>
 
+          {/* GRID sản phẩm */}
           <section className="grid">
             {filtered.map((p) => {
-              const isEditing = editingId === p.id
+              const isEditing = editingId === p.id;
               return (
-                <article key={p.id} className={`card ${p.hidden ? "is-hidden" : ""}`}>
+                <article
+                  key={p.id}
+                  className={`card ${p.hidden ? "is-hidden" : ""}`}
+                >
                   <div className="thumb">
-                    <img src={isEditing && editDraft ? editDraft.image : p.image} alt={p.title} />
+                    <img
+                      src={isEditing && editDraft ? editDraft.image : p.image}
+                      alt={p.title}
+                    />
                   </div>
 
                   {!isEditing && (
                     <>
                       <div className="body">
-                        <a className="title" href="#">{p.title}</a>
-                        <div className="price">${p.price.toFixed(2)}</div>
-                        {p.hidden && <small style={{color:"#9ca3af"}}>Hidden</small>}
+                        <a className="title" href="#">
+                          {p.title}
+                        </a>
+                        <div className="price">
+                          ${p.price.toFixed(2)}{" "}
+                          {p.category && (
+                            <span style={{ fontSize: 11, color: "#6b7280" }}>
+                              ({p.category})
+                            </span>
+                          )}
+                        </div>
+
+                        {/* ⭐ Add rating display */}
+                        {p.rating !== null && (
+                          <div
+                            style={{
+                              fontSize: 13,
+                              color: "#f59e0b",
+                              fontWeight: 700,
+                            }}
+                          >
+                            ★ {p.rating.toFixed(1)}
+                          </div>
+                        )}
+                        
+                        {p.badge && (
+                          <small style={{ color: "#111827", fontSize: 11 }}>
+                            Badge: {p.badge}
+                          </small>
+                        )}
+                        <small style={{ fontSize: 11, color: "#6b7280" }}>
+                          slug: {p.slug}
+                        </small>
+                        <small style={{ fontSize: 11, color: "#6b7280" }}>
+                          Dept: {p.department} | Platform: {p.platform}
+                        </small>
+                        {p.hidden && (
+                          <small style={{ color: "#9ca3af" }}>Hidden</small>
+                        )}
                       </div>
                       <div className="actions">
-                        <button className="btn" onClick={() => startEdit(p)} disabled={deletingId === p.id || hidingId === p.id}>Edit</button>
+                        <button
+                          className="btn"
+                          onClick={() => startEdit(p)}
+                          disabled={deletingId === p.id || hidingId === p.id}
+                        >
+                          Edit
+                        </button>
                         <button
                           className="btn"
                           onClick={() => toggleHidden(p)}
                           disabled={deletingId === p.id || hidingId === p.id}
                         >
-                          {hidingId === p.id ? "Updating..." : p.hidden ? "Unhide" : "Hide"}
+                          {hidingId === p.id
+                            ? "Updating..."
+                            : p.hidden
+                            ? "Unhide"
+                            : "Hide"}
                         </button>
                         <button
                           className="btn danger"
@@ -298,8 +516,39 @@ export default function AdminProductsPage() {
                         className="in"
                         placeholder="Tên sản phẩm"
                         value={editDraft.title}
-                        onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            title: e.target.value,
+                          })
+                        }
                       />
+
+                      <input
+                        className="in"
+                        placeholder="Slug"
+                        value={editDraft.slug}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            slug: e.target.value,
+                          })
+                        }
+                      />
+
+                      <textarea
+                        className="in"
+                        placeholder="Description"
+                        rows={3}
+                        value={editDraft.description ?? ""}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            description: e.target.value,
+                          })
+                        }
+                      />
+
                       <input
                         className="in"
                         placeholder="Giá"
@@ -308,15 +557,65 @@ export default function AdminProductsPage() {
                         step="0.01"
                         value={editDraft.price}
                         onChange={(e) =>
-                          setEditDraft({ ...editDraft, price: parseFloat(e.target.value || "0") })
+                          setEditDraft({
+                            ...editDraft,
+                            price: parseFloat(e.target.value || "0"),
+                          })
                         }
                       />
+
+                      <input
+                        className="in"
+                        placeholder="Rating (0–5)"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={editDraft.rating ?? 0}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            rating: parseFloat(e.target.value || "0"),
+                          })
+                        }
+                      />
+
+                      <input
+                        className="in"
+                        placeholder="Category"
+                        value={editDraft.category ?? ""}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            category: e.target.value,
+                          })
+                        }
+                      />
+
+                      <input
+                        className="in"
+                        placeholder="Badge"
+                        value={editDraft.badge ?? ""}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            badge: e.target.value,
+                          })
+                        }
+                      />
+
                       <input
                         className="in"
                         placeholder="Image URL"
                         value={editDraft.image}
-                        onChange={(e) => setEditDraft({ ...editDraft, image: e.target.value })}
+                        onChange={(e) =>
+                          setEditDraft({
+                            ...editDraft,
+                            image: e.target.value,
+                          })
+                        }
                       />
+
                       <div className="row">
                         <select
                           className="in"
@@ -324,12 +623,15 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
-                              department: e.target.value as Product["department"],
+                              department: e.target.value,
                             })
                           }
                         >
-                          <option value="Apps">Apps</option>
-                          <option value="Games">Games</option>
+                          {departmentOptions.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
                         </select>
                         <select
                           className="in"
@@ -337,76 +639,69 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
-                              platform: e.target.value as Product["platform"],
+                              platform: e.target.value,
                             })
                           }
                         >
-                          <option value="PC">PC</option>
-                          <option value="Mobile">Mobile</option>
+                          {platformOptions.map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
                         </select>
                       </div>
+
+                      <label className="chk">
+                        <input
+                          type="checkbox"
+                          checked={editDraft.hidden}
+                          onChange={(e) =>
+                            setEditDraft({
+                              ...editDraft,
+                              hidden: e.target.checked,
+                            })
+                          }
+                        />
+                        <span>Hidden</span>
+                      </label>
+
                       <div className="actions">
-                        <button className="btn primary" onClick={saveEdit} disabled={saving}>
+                        <button
+                          className="btn primary"
+                          onClick={saveEdit}
+                          disabled={saving}
+                        >
                           {saving ? "Saving..." : "Save"}
                         </button>
-                        <button className="btn" onClick={cancelEdit} disabled={saving}>Cancel</button>
+                        <button
+                          className="btn"
+                          onClick={cancelEdit}
+                          disabled={saving}
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
                   )}
                 </article>
-              )
+              );
             })}
           </section>
         </div>
       </main>
 
+      {/* ---- Styles ---- */}
       <style jsx>{`
         .page {
           display: flex;
           flex-direction: column;
           gap: 16px;
           padding: 16px;
-          width: 1400px;          /* cố định 1400px */
-          min-width: 1400px;      /* giữ nguyên khi cửa sổ nhỏ -> có thể cuộn ngang */
+          width: 1400px;
+          min-width: 1400px;
           max-width: 1400px;
-          margin: 0 auto;         /* canh giữa */
+          margin: 0 auto;
           box-sizing: border-box;
-        }
-        .topbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-        }
-        .tabs {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        .tab {
-          padding: 10px 14px;
-          border-radius: 8px;
-          background: #eaf6ee;
-          color: #0a7a34;
-          text-decoration: none;
-          font-weight: 600;
-        }
-        .tab.active {
-          background: #1ecf67;
-          color: white;
-        }
-        .userbox {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .signout {
-          padding: 8px 12px;
-          border-radius: 8px;
-          background: #ef4444;
-          color: #fff;
-          border: none;
-          cursor: pointer;
         }
         .content {
           display: flex;
@@ -422,23 +717,9 @@ export default function AdminProductsPage() {
           margin: 0;
           font-size: 28px;
         }
-        .pills {
-          display: flex;
-          gap: 8px;
-        }
-        .pill {
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          background: #fff;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-        .pill-active {
-          background: #f3f4f6;
-        }
         .layout {
           display: grid;
-          grid-template-columns: 260px 1fr;
+          grid-template-columns: 280px 1fr;
           gap: 16px;
         }
         .sidebar {
@@ -464,38 +745,56 @@ export default function AdminProductsPage() {
         }
         .grid {
           display: grid;
-          grid-template-columns: repeat(5, 1fr); /* tối đa 5 sản phẩm mỗi hàng */
+          grid-template-columns: repeat(5, 1fr);
           gap: 12px;
         }
-        @media (max-width: 1400px) { .grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 1200px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 800px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 500px)  { .grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1400px) {
+          .grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        @media (max-width: 1200px) {
+          .grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (max-width: 800px) {
+          .grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        @media (max-width: 500px) {
+          .grid {
+            grid-template-columns: 1fr;
+          }
+        }
         .card {
           display: flex;
           flex-direction: column;
-          border: 1px solid #1f2937; /* viền đậm hơn */
+          border: 1px solid #1f2937;
           border-radius: 4px;
           background: #fff;
           overflow: hidden;
-          transition: box-shadow .15s, transform .15s;
+          transition: box-shadow 0.15s, transform 0.15s;
         }
         .card:hover {
-          box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
           transform: translateY(-2px);
         }
-        .card.is-hidden { opacity: .6; }
+        .card.is-hidden {
+          opacity: 0.6;
+        }
         .thumb {
           width: 100%;
-          height: 180px;          /* cao hơn để ảnh lớn */
+          height: 180px;
           overflow: hidden;
-          background: #0078d7;    /* fallback nếu ảnh chưa load */
+          background: #ffffff;
           display: block;
         }
         .thumb img {
           width: 100%;
           height: 100%;
-          object-fit: cover;      /* ảnh phủ đầy khung */
+          object-fit: cover;
           display: block;
         }
         .body {
@@ -511,7 +810,9 @@ export default function AdminProductsPage() {
           font-size: 14px;
           line-height: 1.3;
         }
-        .title:hover { text-decoration: underline; }
+        .title:hover {
+          text-decoration: underline;
+        }
         .price {
           color: #111827;
           font-weight: 700;
@@ -531,7 +832,9 @@ export default function AdminProductsPage() {
           font-size: 12px;
           line-height: 1;
         }
-        .btn:hover { background:#f3f4f6; }
+        .btn:hover {
+          background: #f3f4f6;
+        }
         .btn.danger {
           border-color: #ef4444;
           color: #ef4444;
@@ -546,7 +849,10 @@ export default function AdminProductsPage() {
           padding-bottom: 12px;
           border-bottom: 1px solid #e5e7eb;
         }
-        .add-form h3 { margin: 0; font-size: 14px; }
+        .add-form h3 {
+          margin: 0;
+          font-size: 14px;
+        }
         .in {
           width: 100%;
           padding: 8px 10px;
@@ -555,8 +861,16 @@ export default function AdminProductsPage() {
           font-size: 13px;
           box-sizing: border-box;
         }
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn.primary { background: #10b981; border-color: #10b981; color: #fff; }
+        .row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .btn.primary {
+          background: #10b981;
+          border-color: #10b981;
+          color: #fff;
+        }
         @media (max-width: 900px) {
           .layout {
             grid-template-columns: 1fr;
@@ -564,5 +878,5 @@ export default function AdminProductsPage() {
         }
       `}</style>
     </div>
-  )
+  );
 }
