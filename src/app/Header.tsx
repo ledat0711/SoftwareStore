@@ -38,7 +38,7 @@ export default function Header() {
       </div>
 
       {/* Nav bar tách riêng */}
-      <NavBar />
+      <NavBar/>
     </header>
   );
 }

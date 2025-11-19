@@ -1,61 +1,60 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import Image from "next/image"
-import { MdEmail, MdLock } from "react-icons/md"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import { MdEmail, MdLock } from "react-icons/md";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function CredentialsLoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const passwordRef = useRef<HTMLInputElement>(null)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-  const storedEmail = sessionStorage?.getItem("registeredEmail")
+    const storedEmail = sessionStorage?.getItem("registeredEmail");
 
     if (storedEmail) {
-      setEmail(storedEmail)
-      sessionStorage?.removeItem("registeredEmail") 
+      setEmail(storedEmail);
+      sessionStorage?.removeItem("registeredEmail");
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    const storedEmail = sessionStorage?.getItem("registeredEmail")
+    const storedEmail = sessionStorage?.getItem("registeredEmail");
 
     if (storedEmail && passwordRef.current) {
-      passwordRef.current.focus()
+      passwordRef.current.focus();
     }
-  }, [])
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
     const res = await signIn("credentials", {
       redirect: false,
       email,
       password,
-    })
+    });
 
-    setLoading(false)
+    setLoading(false);
 
     if (res?.error) {
-      setError("Invalid email or password")
-      return
+      setError("Invalid email or password");
+      return;
     }
 
-    router.push("/") 
-  }
+    router.push("/");
+  };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
       <div className="max-w-6xl w-full flex flex-col md:flex-row bg-white dark:bg-gray-800 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300">
-        
         {/* Left section - Illustration */}
         <div className="hidden md:block md:w-1/2 relative bg-gray-100 dark:bg-gray-700 transition-colors duration-300">
           <Image
@@ -121,9 +120,7 @@ export default function CredentialsLoginPage() {
               type="submit"
               disabled={loading}
               className={`w-full py-2.5 font-medium rounded-lg text-white transition ${
-                loading
-                  ? "bg-pink-400 cursor-not-allowed"
-                  : "bg-pink-600 hover:bg-pink-700"
+                loading ? "bg-pink-400 cursor-not-allowed" : "bg-pink-600 hover:bg-pink-700"
               }`}
             >
               {loading ? "Signing in..." : "Sign in"}
@@ -132,12 +129,15 @@ export default function CredentialsLoginPage() {
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
             Don’t have an account?{" "}
-            <a href="/register" className="text-pink-600 dark:text-pink-400 font-medium hover:underline">
+            <a
+              href="/register"
+              className="text-pink-600 dark:text-pink-400 font-medium hover:underline"
+            >
               Create one
             </a>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
