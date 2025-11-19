@@ -20,7 +20,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/products")
+    fetch("/api/products?visible=1")
       .then((res) => res.json())
       .then((data: Product[]) => {
         setProducts(data);

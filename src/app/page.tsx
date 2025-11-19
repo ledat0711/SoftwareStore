@@ -3,6 +3,19 @@
 import Slider from "@/components/Slider";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Product = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  image: string;
+  price: number;
+  rating?: number;
+  category?: string;
+  badge?: string;
+};
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -15,64 +28,20 @@ export default function HomePage() {
       id: "s1",
       title: "Welcome to Software Store",
       titleClass: "text-white",
-      bg: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5HU26ZSS3Tgted_TMty0wzqMQYpm03yD7eAPRtQBYO5dMlD18uZxNDuKXvpqAKGFYXbR3E2AUl4SjJkn2wMOGpMzW_eL9bead7iYs2rnbclM65KqMluL9PQUxrK9Ly91WqD2mOR04qP8KhlAr9sCYHV0ITD7w0VDwUVc0OS0dlZQzX_mQjmIhqTnlbcK5QYa0bZ0JBvUwPmYg3m28w--&h=576') center/cover no-repeat",
+      bg: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5...') center/cover no-repeat",
     },
-    {
-      id: "s2",
-      title: "Performance Optimization",
-      subtitle: "Tối ưu hiệu suất",
-      bg: "linear-gradient(135deg,#fde68a,#fecaca)",
-    },
-    {
-      id: "s3",
-      title: "Secure & Reliable",
-      subtitle: "Bảo mật và ổn định",
-      bg: "linear-gradient(135deg,#e9d5ff,#bae6fd)",
-    },
+    { id: "s2", title: "Performance Optimization", subtitle: "Tối ưu hiệu suất", bg: "linear-gradient(135deg,#fde68a,#fecaca)" },
+    { id: "s3", title: "Secure & Reliable", subtitle: "Bảo mật và ổn định", bg: "linear-gradient(135deg,#e9d5ff,#bae6fd)" },
   ];
 
-  // Gợi ý sản phẩm (sửa theo thiết kế mới)
-  const recommendedProducts = [
-    {
-      id: "win11-pro",
-      name: "Windows 11 Pro Key",
-      description: "Key OEM/Retail kích hoạt online, cập nhật dài hạn.",
-      image: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1200&auto=format&fit=crop",
-      price: 96,
-      rating: 4.8,
-      badge: "Hot",
-      category: "HĐH",
-    },
-    {
-      id: "office-2021",
-      name: "Microsoft Office 2021",
-      description: "Word, Excel, PowerPoint vĩnh viễn.",
-      image: "https://shop.winandoffice.com/australia/wp-content/uploads/2023/12/O21S.jpg",
-      price: 196,
-      rating: 4.7,
-      badge: "Best Seller",
-      category: "Văn phòng",
-    },
-    {
-      id: "avast-premium",
-      name: "Avast Premium Security",
-      description: "Bảo vệ realtime chống malware & ransomware.",
-      image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRSvqy3R-fRwU0kHwuVvJsWz99bpfZAXhcVQ&s",
-      price: 166,
-      rating: 4.5,
-      badge: "New",
-      category: "Bảo mật",
-    },
-    {
-      id: "vs-code-ext-pack",
-      name: "VS Code Extensions Pack",
-      description: "Tăng tốc phát triển với bộ extension.",
-      image: "https://code.visualstudio.com/assets/branding/code-stable.png",
-      price: 49, // giá mới theo hình
-      rating: 4.6,
-      category: "Dev Tools",
-    },
-  ];
+  // ⭐ NEW: load recommended from DB
+  const [recommended, setRecommended] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetch("/api/products?take=4")
+      .then((r) => r.json())
+      .then(setRecommended);
+  }, []);
 
   return (
     <main style={{ maxWidth: 960, margin: "32px auto", padding: "0 16px", display: "grid", gap: 16 }}>
@@ -94,6 +63,7 @@ export default function HomePage() {
 
       <Slider items={slides} />
 
+      {/* Recommended section */}
       <section style={{ marginTop: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 12 }}>
           <div>
@@ -106,7 +76,7 @@ export default function HomePage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
-          {recommendedProducts.map((p) => (
+          {recommended.map((p) => (
             <div
               key={p.id}
               style={{
@@ -118,15 +88,11 @@ export default function HomePage() {
                 flexDirection: "column",
               }}
             >
-              <Link
-                href={`/products/${p.id}`}
-                aria-label={`Xem chi tiết ${p.name}`}
-                style={{ position: "relative", display: "block", cursor: "pointer" }}
-              >
+              <Link href={`/products/${p.slug}`} style={{ position: "relative", display: "block" }}>
                 <img
                   src={p.image}
-                  alt={p.name}
-                  style={{ width: "100%", height: 140, objectFit: "contain", background: "#f9fafb", display: "block" }}
+                  alt={p.title}
+                  style={{ width: "100%", height: 140, objectFit: "contain", background: "#f9fafb" }}
                 />
                 {p.badge && (
                   <span
@@ -147,72 +113,38 @@ export default function HomePage() {
                 )}
               </Link>
 
-              {/* Bar chứa category + rating */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 12px 4px",
-                  background: "#fff",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11,
-                    background: "#f3f4f6",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+              <div style={{ display: "flex", gap: 10, padding: "8px 12px 4px" }}>
+                <span style={{ fontSize: 11, background: "#f3f4f6", padding: "2px 8px", borderRadius: 6 }}>
                   {p.category}
                 </span>
-                <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>★ {p.rating}</span>
+                <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>★ {p.rating ?? "4.8"}</span>
               </div>
 
               <div style={{ padding: "0 12px 12px", display: "grid", gap: 10 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.3 }}>
-                  <Link href={`/products/${p.id}`} style={{ color: "#111827", textDecoration: "none" }}>
-                    {p.name}
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
+                  <Link href={`/products/${p.slug}`} style={{ color: "#111827", textDecoration: "none" }}>
+                    {p.title}
                   </Link>
                 </h3>
-                <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.5, margin: 0 }}>{p.description}</p>
+                <p style={{ fontSize: 12.5, color: "#6b7280" }}>{p.description}</p>
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "#111827", fontWeight: 800, fontSize: 14 }}>${p.price}</span>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                      onClick={() => console.log("add-to-cart", p.id)}
-                      style={{
-                        background: "#111827",
-                        color: "#fff",
-                        border: "none",
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Thêm
-                    </button>
-                    <Link
-                      href={`/products/${p.id}`}
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        padding: "6px 14px",
-                        borderRadius: 8,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        color: "#111827",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Chi tiết
-                    </Link>
-                  </div>
+                  <button
+                    onClick={() => console.log("add-to-cart", p.id)}
+                    style={{
+                      background: "#111827",
+                      color: "#fff",
+                      border: "none",
+                      padding: "6px 14px",
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Thêm
+                  </button>
                 </div>
               </div>
             </div>
