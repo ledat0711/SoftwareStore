@@ -1,7 +1,8 @@
 // Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
     provider = "postgresql"
-    url = "postgresql://postgres:postgres@localhost:5432/postgres"
+    url = "prisma://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza183d1BYbGxQb1lwdS05ZmNfUTNPZ0ciLCJhcGlfa2V5IjoiMDFLODJCTTMxMDQ1MkdLV1NRMVFYQ1RCN1EiLCJ0ZW5hbnRfaWQiOiJmN2JjMTNmZDQ2NDU4Y2IwMzEyNzgxZDc5NGNmZThmMzhhZGM1OTYwMDRhYzIyZDU1N2M5NTMzMTQxNTc2ZGMyIiwiaW50ZXJuYWxfc2VjcmV0IjoiMTg3YmM2ZjctNjJkYi00MTdiLTk4YzMtYzkwOGFkYjYzNWIyIn0.CeGuym-kzHB3hKiuy8wNDM2fQVHy5xb84i0CrvoyLTw"
+    directUrl = "postgresql://postgres.oabppbrtjcgcwgrwwldx:hYns6mtMiJRtF1F2@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 }
 
 generator client {
