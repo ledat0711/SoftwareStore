@@ -1,7 +1,7 @@
 // Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
-  provider = "postgresql"
-  url = "postgresql://postgres:postgres@localhost:5432/postgres"
+    provider = "postgresql"
+    url = "postgresql://postgres:postgres@localhost:5432/postgres"
 }
 
 generator client {

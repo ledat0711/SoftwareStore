@@ -4,11 +4,16 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
+type AppUser = {
+  role?: string;
+};
+
 export default function NavBar() {
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  const role = (session?.user as any)?.role as string | undefined;
+  // const role = (session?.user as AppUser)?.role;
+  const role = "ADMIN";
   const isAdmin = role === "ADMIN";
 
   type NavItem = { label: string; href: string };

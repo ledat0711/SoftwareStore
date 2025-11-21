@@ -7,9 +7,9 @@ import AddToCartButton from "./AddToCartButton";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id } = params;
   const product = await prisma.product.findUnique({
     where: { slug: id },
   });
@@ -24,7 +24,7 @@ export async function generateMetadata({
     openGraph: {
       title: product.title,
       description: product.description ?? "",
-      images: [{ url: product.image }],
+      images: [{ url: product.image ?? "" }],
     },
   };
 }
@@ -36,9 +36,9 @@ function currency(n: number) {
 export default async function ProductDetail({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
   // ⭐ Lấy sản phẩm từ database
   const p = await prisma.product.findUnique({
     where: { slug: id },
@@ -56,7 +56,7 @@ export default async function ProductDetail({
   // ⭐ Sản phẩm liên quan (lấy theo category hoặc lấy ngẫu nhiên)
   const related = await prisma.product.findMany({
     where: {
-      department: p.department,
+      category: p.category ?? undefined,
       NOT: { id: p.id },
     },
     take: 4,
@@ -94,7 +94,7 @@ export default async function ProductDetail({
       >
         <div style={{ border: "1px solid #e5e7eb", borderRadius: 14 }}>
           <img
-            src={p.image}
+            src={p.image ?? ""}
             alt={p.title}
             style={{
               width: "100%",
@@ -170,7 +170,7 @@ export default async function ProductDetail({
             >
               <Link href={`/products/${r.slug}`}>
                 <img
-                  src={r.image}
+                  src={r.image ?? ""}
                   style={{
                     width: "100%",
                     height: 120,

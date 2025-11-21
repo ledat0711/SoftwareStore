@@ -1,62 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
 
 type RouteContext = {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 };
 
-// GET product by ID
-export async function GET(
-  req: Request,
-  { params }: RouteContext
-) {
-  const product = await prisma.product.findUnique({
-    where: { slug: params.id },
-  });
+export async function GET(request: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
 
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) {
+    return new NextResponse("Product not found", { status: 404 });
+  }
   return NextResponse.json(product);
 }
 
-// UPDATE (PUT)
-export async function PUT(
-  req: Request,
-  { params }: RouteContext
-) {
-  const body = await req.json();
+export async function PUT(request: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
+  const body = await request.json();
 
-  const updated = await prisma.product.update({
-    where: { id: params.id },
-    data: body,
-  });
-
-  return NextResponse.json(updated);
+  try {
+    const updated = await prisma.product.update({ where: { id }, data: body });
+    return NextResponse.json(updated);
+  } catch {
+    return new NextResponse("Update failed", { status: 400 });
+  }
 }
 
-// UPDATE (PATCH)
-export async function PATCH(
-  req: Request,
-  { params }: RouteContext
-) {
-  const body = await req.json();
+export async function PATCH(request: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
+  const body = await request.json();
 
-  const updated = await prisma.product.update({
-    where: { id: params.id },
-    data: body,
-  });
-
-  return NextResponse.json(updated);
+  try {
+    const updated = await prisma.product.update({ where: { id }, data: body });
+    return NextResponse.json(updated);
+  } catch {
+    return new NextResponse("Patch failed", { status: 400 });
+  }
 }
 
-// DELETE product
-export async function DELETE(
-  req: Request,
-  { params }: RouteContext
-) {
-  await prisma.product.delete({
-    where: { id: params.id },
-  });
+export async function DELETE(request: NextRequest, { params }: RouteContext) {
+  const { id } = await params;
 
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.product.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return new NextResponse("Delete failed", { status: 400 });
+  }
 }

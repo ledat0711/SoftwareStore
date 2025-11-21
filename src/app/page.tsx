@@ -19,8 +19,9 @@ type Product = {
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const roleString =
+  // const role = (session?.user as any)?.role;
+  const role = "ADMIN";
+  const roleString = 
     role === "ADMIN" ? "Admin" : role === "USER" ? "User" : "Not signed in";
 
   const slides = [
