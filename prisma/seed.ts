@@ -58,7 +58,7 @@ const allProducts = [
     title: "Figma Professional",
     description: "Thiết kế UI/UX cộng tác realtime.",
     image:
-      "https://scontent.fdad3-1.fna.fbcdn.net/v/...jpg",
+      "https://scontent.fdad3-1.fna.fbcdn.net/v/t39.30808-1/473617582_1029732299185368_7793304005103073658_n.jpg?stp=c0.128.1024.1024a_dst-jpg_s200x200_tt6&_nc_cat=110&ccb=1-7&_nc_sid=2d3e12&_nc_ohc=jVdG1aqizdYQ7kNvwG_0ACd&_nc_oc=AdnPffYzlZfcNtbKlqgHMBwcadisAULmnJzJHOlk26gHfitNfnzGEhPN10sRbrpi7dU&_nc_zt=24&_nc_ht=scontent.fdad3-1.fna&_nc_gid=XjY-9hTZCKrXS04VUKsoew&oh=00_AfjMeUCO_wp7v4XObK5SEs7hR4v10mkSIyeSM894VyukaQ&oe=692629A2",
     price: 120,
     rating: 4.9,
     tag: "Thiết kế",
@@ -78,7 +78,7 @@ const allProducts = [
     title: "IntelliJ IDEA Ultimate",
     description: "IDE mạnh mẽ cho Java & hơn thế.",
     image:
-      "https://resources.jetbrains.com/.../IntelliJ_IDEA_icon.png",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/IntelliJ_IDEA_Icon.svg/768px-IntelliJ_IDEA_Icon.svg.png?20200803071016",
     price: 299,
     rating: 4.7,
     tag: "Dev Tools",
