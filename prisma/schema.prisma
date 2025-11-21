@@ -1,6 +1,7 @@
+// Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url = "postgresql://postgres:postgres@localhost:5432/postgres"
 }
 
 generator client {
@@ -19,17 +20,17 @@ enum Platform {
 
 model Product {
   id          String   @id @default(cuid())
-  slug        String   @unique       // dùng cho URL /products/xxx
-  title       String                // tên hiển thị
+  slug        String   @unique   // dùng cho URL :slack-premium: http://localhost:3000/products/slack-premium
+  title       String             // tên hiển thị
   description String?
-  image       String
+  image       String?
   price       Float
-  rating      Float?                // optional
-  category    String?               // optional
-  badge       String?               // optional
+  rating      Float?            
+  tag         String?           // (Năng suất/Dev Tools/Thiết kế...) (fix: category => tag)
+  badge       String?           //
 
-  department  String?               // Apps / Games / Office / Security...
-  platform    String?               // PC / Mobile / All…
+  category    String?           // (Software/Apps/Games...) (fix: department => category)
+  platform    String?           // PC/Mobile/All...
 
   hidden      Boolean  @default(false)
 

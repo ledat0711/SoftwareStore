@@ -1,23 +1,13 @@
-// prisma/seed.ts
+// During the early development stage, seed data is useful for quickly generating test records.
+// Once all CRUD features are fully implemented, seeding should no longer be used, as it may
+// introduce inconsistencies or break relational links within the dataset.
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { slugify } from '../src/lib/helpers';
 
 const prisma = new PrismaClient();
 
 /* -------------------------------------------------------
-   1. Hàm tạo slug tự động
-------------------------------------------------------- */
-function slugify(str: string) {
-  return str
-    .normalize("NFD")                           // remove dấu tiếng Việt
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")               // replace khoảng trắng, ký tự lạ
-    .replace(/(^-|-$)+/g, "");                 // trim
-}
-
-/* -------------------------------------------------------
-   2. Tất cả sản phẩm – GOM CHUNG 1 MẢNG
+   1. Tại ra mảng danh sách sản phẩm mẫu
 ------------------------------------------------------- */
 const allProducts = [
   // ======= SOFTWARE STORE PRODUCTS ======= //
@@ -29,7 +19,7 @@ const allProducts = [
       "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1200&auto=format&fit=crop",
     price: 96,
     rating: 4.8,
-    category: "HĐH",
+    tag: "HĐH",
     badge: "Hot",
   },
   {
@@ -40,7 +30,7 @@ const allProducts = [
       "https://shop.winandoffice.com/australia/wp-content/uploads/2023/12/O21S.jpg",
     price: 196,
     rating: 4.7,
-    category: "Văn phòng",
+    tag: "Văn phòng",
     badge: "Best Seller",
   },
   {
@@ -51,7 +41,7 @@ const allProducts = [
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRSvqy3R-fRwU0kHwuVvJsWz99bpfZAXhcVQ&s",
     price: 166,
     rating: 4.5,
-    category: "Bảo mật",
+    tag: "Bảo mật",
     badge: "New",
   },
   {
@@ -61,7 +51,7 @@ const allProducts = [
     image: "https://code.visualstudio.com/assets/branding/code-stable.png",
     price: 49,
     rating: 4.6,
-    category: "Dev Tools",
+    tag: "Dev Tools",
   },
   {
     id: "figma-pro",
@@ -71,7 +61,7 @@ const allProducts = [
       "https://scontent.fdad3-1.fna.fbcdn.net/v/...jpg",
     price: 120,
     rating: 4.9,
-    category: "Thiết kế",
+    tag: "Thiết kế",
   },
   {
     id: "adobe-ps",
@@ -81,7 +71,7 @@ const allProducts = [
       "https://upload.wikimedia.org/wikipedia/commons/2/20/Photoshop_CC_icon.png",
     price: 239,
     rating: 4.8,
-    category: "Thiết kế",
+    tag: "Thiết kế",
   },
   {
     id: "jetbrains-idea",
@@ -91,7 +81,7 @@ const allProducts = [
       "https://resources.jetbrains.com/.../IntelliJ_IDEA_icon.png",
     price: 299,
     rating: 4.7,
-    category: "Dev Tools",
+    tag: "Dev Tools",
   },
   {
     id: "postman-pro",
@@ -100,7 +90,7 @@ const allProducts = [
     image: "https://voyager.postman.com/logo/postman-logo-icon-orange.svg",
     price: 89,
     rating: 4.6,
-    category: "Dev Tools",
+    tag: "Dev Tools",
   },
   {
     id: "notion-plus",
@@ -109,7 +99,7 @@ const allProducts = [
     image: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg",
     price: 75,
     rating: 4.8,
-    category: "Năng suất",
+    tag: "Năng suất",
   },
   {
     id: "slack-premium",
@@ -118,12 +108,12 @@ const allProducts = [
     image: "https://upload.wikimedia.org/wikipedia/commons/7/76/Slack_Icon.png",
     price: 130,
     rating: 4.4,
-    category: "Năng suất",
+    tag: "Năng suất",
   },
 ];
 
 /* -------------------------------------------------------
-   3. SEED FUNCTION
+   2. SEED FUNCTION
 ------------------------------------------------------- */
 async function main() {
   console.log("🧹 Xóa dữ liệu cũ...");
@@ -144,9 +134,9 @@ async function main() {
         image: p.image,
         price: p.price,
         rating: p.rating,
-        category: p.category,
+        tag: p.tag,
         badge: p.badge ?? null,
-        department: "Software",
+        category: "Software",
         platform: "All",
       },
       update: {},

@@ -1,40 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
+import { slugify } from "@/lib/helpers";
+import { toggle } from "@/lib/helpers";
 /* ----------------- Types ----------------- */
 
-type Product = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  image: string;
-  price: number;
-  rating: number | null;
-  category: string | null;
-  badge: string | null;
-  department: string;
-  platform: string;
-  hidden: boolean;
-};
+class Product {
+  id: string = "";
+  slug: string = "";
+  title: string = "";
+  description: string | null = "";
+  image: string = "";
+  price: number = 0;
+  rating: number | null = 0;
+  tag: string | null = "";
+  badge: string | null = "";
+  category: string = "Software";
+  platform: string = "All";
+  hidden: boolean = false;
+
+  constructor(init?: Partial<Product>) {
+    Object.assign(this, init);
+  }
+}
 
 type ProductForm = Omit<Product, "id">;
-
-/* ----------------- Helpers ----------------- */
-
-function slugify(str: string) {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
-
-function toggle<T extends string>(arr: T[], val: T) {
-  return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
-}
 
 /* ----------------- Component ----------------- */
 
@@ -50,33 +40,21 @@ export default function AdminProductsPage() {
   }, []);
 
   // ----- Form thêm mới -----
-  const [newProd, setNewProd] = useState<ProductForm>({
-    slug: "",
-    title: "",
-    description: "",
-    image: "",
-    price: 0,
-    rating: 0,
-    category: "",
-    badge: "",
-    department: "Software",
-    platform: "All",
-    hidden: false,
-  });
+const [newProd, setNewProd] = useState<ProductForm>(new Product());
 
   // ----- Filter -----
   const [filters, setFilters] = useState<{
-    department: string[];
+    category: string[];
     platform: string[];
   }>({
-    department: [],
+    category: [],
     platform: [],
   });
 
   // option filter động từ DB + giá trị mặc định
-  const departmentOptions = useMemo(() => {
+  const categoryOptions = useMemo(() => {
     const base = ["Software", "Apps", "Games"];
-    const fromDb = products.map((p) => p.department);
+    const fromDb = products.map((p) => p.category);
     return Array.from(new Set([...base, ...fromDb])).filter(Boolean);
   }, [products]);
 
@@ -88,15 +66,15 @@ export default function AdminProductsPage() {
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const depOk =
-        filters.department.length > 0
-          ? filters.department.includes(p.department)
+      const categoryOk =
+        filters.category.length > 0
+          ? filters.category.includes(p.category)
           : true;
       const platOk =
         filters.platform.length > 0
           ? filters.platform.includes(p.platform)
           : true;
-      return depOk && platOk;
+      return categoryOk && platOk;
     });
   }, [filters, products]);
 
@@ -110,19 +88,7 @@ export default function AdminProductsPage() {
 
   function startEdit(p: Product) {
     setEditingId(p.id);
-    setEditDraft({
-      slug: p.slug,
-      title: p.title,
-      description: p.description ?? "",
-      image: p.image,
-      price: p.price,
-      rating: p.rating ?? 0,
-      category: p.category ?? "",
-      badge: p.badge ?? "",
-      department: p.department,
-      platform: p.platform,
-      hidden: p.hidden ?? false,
-    });
+    setEditDraft(new Product(p));
   }
 
   function cancelEdit() {
@@ -223,9 +189,9 @@ export default function AdminProductsPage() {
       image: "",
       price: 0,
       rating: 0,
-      category: "",
+      tag: "",
       badge: "",
-      department: "Software",
+      category: "Software",
       platform: "All",
       hidden: false,
     });
@@ -338,12 +304,12 @@ export default function AdminProductsPage() {
               <div className="row">
                 <select
                   className="in"
-                  value={newProd.department}
+                  value={newProd.category}
                   onChange={(e) =>
-                    setNewProd({ ...newProd, department: e.target.value })
+                    setNewProd({ ...newProd, category: e.target.value })
                   }
                 >
-                  {departmentOptions.map((d) => (
+                  {categoryOptions.map((d) => (
                     <option key={d} value={d}>
                       {d}
                     </option>
@@ -383,20 +349,20 @@ export default function AdminProductsPage() {
 
             {/* Filter */}
             <div className="filter-group">
-              <h3>Departments</h3>
-              {departmentOptions.map((dep) => (
-                <label key={dep} className="chk">
+              <h3>Categories</h3>
+              {categoryOptions.map((category) => (
+                <label key={category} className="chk">
                   <input
                     type="checkbox"
-                    checked={filters.department.includes(dep)}
+                    checked={filters.category.includes(category)}
                     onChange={() =>
                       setFilters((f) => ({
                         ...f,
-                        department: toggle(f.department, dep),
+                        category: toggle(f.category, category),
                       }))
                     }
                   />
-                  <span>{dep}</span>
+                  <span>{category}</span>
                 </label>
               ))}
             </div>
@@ -474,7 +440,7 @@ export default function AdminProductsPage() {
                           slug: {p.slug}
                         </small>
                         <small style={{ fontSize: 11, color: "#6b7280" }}>
-                          Dept: {p.department} | Platform: {p.platform}
+                          Category: {p.category} | Platform: {p.platform}
                         </small>
                         {p.hidden && (
                           <small style={{ color: "#9ca3af" }}>Hidden</small>
@@ -619,15 +585,15 @@ export default function AdminProductsPage() {
                       <div className="row">
                         <select
                           className="in"
-                          value={editDraft.department}
+                          value={editDraft.category}
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
-                              department: e.target.value,
+                              category: e.target.value,
                             })
                           }
                         >
-                          {departmentOptions.map((d) => (
+                          {categoryOptions.map((d) => (
                             <option key={d} value={d}>
                               {d}
                             </option>
