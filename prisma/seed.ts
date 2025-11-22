@@ -118,33 +118,6 @@ const allProducts = [
 async function main() {
   console.log("🧹 Xóa dữ liệu cũ...");
   await prisma.$executeRaw`DELETE FROM "Product"`;
-  console.log("Seeding admin user and role...");
-  const adminRole = await prisma.role.upsert({
-    where: { name: "admin" },
-    update: {},
-    create: { name: "admin" },
-  });
-  const adminUser = await prisma.user.upsert({
-    where: { email: "leanhdat1994@gmail.com" },
-    update: { name: "LeDat" },
-    create: {
-      name: "LeDat",
-      email: "leanhdat1994@gmail.com",
-    },
-  });
-  await prisma.roleUser.upsert({
-    where: {
-      userId_roleId: {
-        userId: adminUser.id,
-        roleId: adminRole.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: adminUser.id,
-      roleId: adminRole.id,
-    },
-  });
 
   console.log("🚀 Seed sản phẩm Software Store...");
 
