@@ -17,10 +17,13 @@ type Product = {
   badge?: string;
 };
 
+type AppUser = {
+  role?: string;
+};
+
 export default function HomePage() {
   const { data: session } = useSession();
-  // const role = (session?.user as any)?.role;
-  const role = "ADMIN";
+  const role = (session?.user as AppUser)?.role;
   const roleString = 
     role === "ADMIN" ? "Admin" : role === "USER" ? "User" : "Not signed in";
 

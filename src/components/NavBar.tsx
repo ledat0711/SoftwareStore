@@ -12,8 +12,7 @@ export default function NavBar() {
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  // const role = (session?.user as AppUser)?.role;
-  const role = "ADMIN";
+  const role = (session?.user as AppUser)?.role;
   const isAdmin = role === "ADMIN";
 
   type NavItem = { label: string; href: string };
