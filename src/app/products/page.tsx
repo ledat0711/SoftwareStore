@@ -2,18 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type Product = {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  image: string;
-  price: number;
-  rating?: number | null;
-  category?: string | null;
-  badge?: string | null;
-};
+import { Product } from "@/types/product";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -94,7 +83,7 @@ export default function ProductsPage() {
             >
               <Link href={`/products/${p.slug}`} style={{ position: "relative" }}>
                 <img
-                  src={p.image}
+                  src={p.image ?? ""}
                   alt={p.title}
                   style={{
                     width: "100%",

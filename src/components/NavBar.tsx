@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import { ROLES, Role } from "@/constants/role";
 
 type AppUser = {
-  role?: string;
+  role?: Role;
 };
 
 export default function NavBar() {
@@ -13,7 +14,7 @@ export default function NavBar() {
   const pathname = usePathname();
 
   const role = (session?.user as AppUser)?.role;
-  const isAdmin = role === "ADMIN";
+  const isAdmin = role === ROLES.ADMIN;
 
   type NavItem = { label: string; href: string };
   const baseItems: NavItem[] = [

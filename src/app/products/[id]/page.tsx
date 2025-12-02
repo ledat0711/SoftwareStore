@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { getProductBySlug, getRelatedProducts } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
@@ -10,9 +10,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const { id } = params;
-  const product = await prisma.product.findUnique({
-    where: { slug: id },
-  });
+  const product = await getProductBySlug(id);
 
   if (!product) {
     return { title: "Không tìm thấy sản phẩm" };
@@ -40,9 +38,7 @@ export default async function ProductDetail({
 }) {
   const { id } = params;
   // ⭐ Lấy sản phẩm từ database
-  const p = await prisma.product.findUnique({
-    where: { slug: id },
-  });
+  const p = await getProductBySlug(id);
 
   if (!p) {
     return (
@@ -54,13 +50,7 @@ export default async function ProductDetail({
   }
 
   // ⭐ Sản phẩm liên quan (lấy theo category hoặc lấy ngẫu nhiên)
-  const related = await prisma.product.findMany({
-    where: {
-      category: p.category ?? undefined,
-      NOT: { id: p.id },
-    },
-    take: 4,
-  });
+  const related = await getRelatedProducts(p.id, p.category);
 
   return (
     <main

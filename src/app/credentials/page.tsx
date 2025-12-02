@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { MdEmail, MdLock } from "react-icons/md";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -129,12 +130,12 @@ export default function CredentialsLoginPage() {
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
             Don’t have an account?{" "}
-            <a
+            <Link
               href="/register"
               className="text-pink-600 dark:text-pink-400 font-medium hover:underline"
             >
               Create one
-            </a>
+            </Link>
           </p>
         </div>
       </div>

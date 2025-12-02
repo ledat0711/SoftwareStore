@@ -4,28 +4,18 @@ import Slider from "@/components/Slider";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type Product = {
-  id: string;
-  slug: string;
-  title: string;
-  description?: string;
-  image: string;
-  price: number;
-  rating?: number;
-  category?: string;
-  badge?: string;
-};
+import { Product } from "@/types/product";
+import { ROLES, ROLE_LABELS, Role } from "@/constants/role";
 
 type AppUser = {
-  role?: string;
+  role?: Role;
 };
 
 export default function HomePage() {
   const { data: session } = useSession();
   const role = (session?.user as AppUser)?.role;
-  const roleString = 
-    role === "ADMIN" ? "Admin" : role === "USER" ? "User" : "Not signed in";
+  const roleString =
+    role && ROLE_LABELS[role as Role] ? ROLE_LABELS[role] : "Not signed in";
 
   const slides = [
     {
@@ -94,7 +84,7 @@ export default function HomePage() {
             >
               <Link href={`/products/${p.slug}`} style={{ position: "relative", display: "block" }}>
                 <img
-                  src={p.image}
+                  src={p.image || ""}
                   alt={p.title}
                   style={{ width: "100%", height: 140, objectFit: "contain", background: "#f9fafb" }}
                 />

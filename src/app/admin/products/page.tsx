@@ -3,20 +3,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { slugify } from "@/lib/helpers";
 import { toggle } from "@/lib/helpers";
+import {
+  CATEGORY_BASE,
+  PLATFORM_BASE,
+  DEFAULT_CATEGORY,
+  DEFAULT_PLATFORM,
+} from "@/constants/product";
+import { Product } from "@/types/product";
+
 /* ----------------- Types ----------------- */
 
-class Product {
+class ProductModel implements Product {
   id: string = "";
   slug: string = "";
   title: string = "";
   description: string | null = "";
-  image: string = "";
+  image: string | null = "";
   price: number = 0;
   rating: number | null = 0;
   tag: string | null = "";
   badge: string | null = "";
-  category: string = "Software";
-  platform: string = "All";
+  category: string = DEFAULT_CATEGORY;
+  platform: string = DEFAULT_PLATFORM;
   hidden: boolean = false;
 
   constructor(init?: Partial<Product>) {
@@ -26,12 +34,10 @@ class Product {
 
 type ProductForm = Omit<Product, "id">;
 
-/* ----------------- Component ----------------- */
-
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
 
-  // load từ DB
+  // load từ API
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -39,8 +45,10 @@ export default function AdminProductsPage() {
       .catch(() => setProducts([]));
   }, []);
 
-  // ----- Form thêm mới -----
-const [newProd, setNewProd] = useState<ProductForm>(new Product());
+  // ----- Form thêm mới-----
+  const [newProd, setNewProd] = useState<ProductForm>(
+    new ProductModel({ category: DEFAULT_CATEGORY, platform: DEFAULT_PLATFORM })
+  );
 
   // ----- Filter -----
   const [filters, setFilters] = useState<{
@@ -51,28 +59,26 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
     platform: [],
   });
 
-  // option filter động từ DB + giá trị mặc định
+  // option filter từ DB + giá trị mức mặc định
   const categoryOptions = useMemo(() => {
-    const base = ["Software", "Apps", "Games"];
     const fromDb = products.map((p) => p.category);
-    return Array.from(new Set([...base, ...fromDb])).filter(Boolean);
+    return Array.from(new Set([...CATEGORY_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
   const platformOptions = useMemo(() => {
-    const base = ["All", "PC", "Mobile"];
     const fromDb = products.map((p) => p.platform);
-    return Array.from(new Set([...base, ...fromDb])).filter(Boolean);
+    return Array.from(new Set([...PLATFORM_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const categoryOk =
         filters.category.length > 0
-          ? filters.category.includes(p.category)
+          ? filters.category.includes(p.category ?? "")
           : true;
       const platOk =
         filters.platform.length > 0
-          ? filters.platform.includes(p.platform)
+          ? filters.platform.includes(p.platform ?? "")
           : true;
       return categoryOk && platOk;
     });
@@ -88,7 +94,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
 
   function startEdit(p: Product) {
     setEditingId(p.id);
-    setEditDraft(new Product(p));
+    setEditDraft(new ProductModel(p));
   }
 
   function cancelEdit() {
@@ -164,7 +170,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
     }
   }
 
-  // ----- Submit tạo mới -----
+  // ----- Submit thêm mới -----
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
 
@@ -181,20 +187,13 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
     if (!res.ok) return;
 
     const created: Product = await res.json();
-    setProducts((prev) => [created, ...prev]);
-    setNewProd({
-      slug: "",
-      title: "",
-      description: "",
-      image: "",
-      price: 0,
-      rating: 0,
-      tag: "",
-      badge: "",
-      category: "Software",
-      platform: "All",
-      hidden: false,
-    });
+    setProducts((prev) => [new ProductModel(created), ...prev]);
+    setNewProd(
+      new ProductModel({
+        category: DEFAULT_CATEGORY,
+        platform: DEFAULT_PLATFORM,
+      })
+    );
   }
 
   /* ----------------- JSX ----------------- */
@@ -259,7 +258,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
 
               <input
                 className="in"
-                placeholder="Rating (0–5)"
+                placeholder="Rating"
                 type="number"
                 min="0"
                 max="5"
@@ -294,7 +293,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
               <input
                 className="in"
                 placeholder="Image URL"
-                value={newProd.image}
+                value={newProd.image ?? ""}
                 onChange={(e) =>
                   setNewProd({ ...newProd, image: e.target.value })
                 }
@@ -304,13 +303,13 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
               <div className="row">
                 <select
                   className="in"
-                  value={newProd.category}
+                  value={newProd.category ?? ""}
                   onChange={(e) =>
                     setNewProd({ ...newProd, category: e.target.value })
                   }
                 >
                   {categoryOptions.map((d) => (
-                    <option key={d} value={d}>
+                    <option key={d} value={d ?? ""}>
                       {d}
                     </option>
                   ))}
@@ -318,13 +317,13 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
 
                 <select
                   className="in"
-                  value={newProd.platform}
+                  value={newProd.platform ?? ""}
                   onChange={(e) =>
                     setNewProd({ ...newProd, platform: e.target.value })
                   }
                 >
                   {platformOptions.map((p) => (
-                    <option key={p} value={p}>
+                    <option key={p} value={p ?? ""}>
                       {p}
                     </option>
                   ))}
@@ -354,11 +353,11 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                 <label key={category} className="chk">
                   <input
                     type="checkbox"
-                    checked={filters.category.includes(category)}
+                    checked={filters.category.includes(category ?? "")}
                     onChange={() =>
                       setFilters((f) => ({
                         ...f,
-                        category: toggle(f.category, category),
+                        category: toggle(f.category, category ?? ""),
                       }))
                     }
                   />
@@ -366,18 +365,17 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                 </label>
               ))}
             </div>
-
             <div className="filter-group">
               <h3>Available on</h3>
               {platformOptions.map((p) => (
                 <label key={p} className="chk">
                   <input
                     type="checkbox"
-                    checked={filters.platform.includes(p)}
+                    checked={filters.platform.includes(p ?? "")}
                     onChange={() =>
                       setFilters((f) => ({
                         ...f,
-                        platform: toggle(f.platform, p),
+                        platform: toggle(f.platform, p ?? ""),
                       }))
                     }
                   />
@@ -387,94 +385,92 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
             </div>
           </aside>
 
-          {/* GRID sản phẩm */}
           <section className="grid">
             {filtered.map((p) => {
               const isEditing = editingId === p.id;
               return (
-                <article
-                  key={p.id}
-                  className={`card ${p.hidden ? "is-hidden" : ""}`}
-                >
-                  <div className="thumb">
-                    <img
-                      src={isEditing && editDraft ? editDraft.image : p.image}
-                      alt={p.title}
-                    />
-                  </div>
+                <article key={p.id} className="card">
+                  <div className="card__top">
+                    <div className="img">
+                      <img
+                        src={(isEditing && editDraft ? editDraft.image : p.image) ?? ""}
+                        alt={p.title}
+                      />
+                    </div>
+                    <div className="meta">
+                      <a
+                        className="title"
+                        href={`/products/${p.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {p.title}
+                      </a>
+                      <div className="price">
+                        ${p.price.toFixed(2)}{" "}
+                        {p.category && (
+                          <span style={{ fontSize: 11, color: "#6b7280" }}>
+                            ({p.category})
+                          </span>
+                        )}
+                      </div>
 
-                  {!isEditing && (
-                    <>
-                      <div className="body">
-                        <a className="title" href="#">
-                          {p.title}
-                        </a>
-                        <div className="price">
-                          ${p.price.toFixed(2)}{" "}
-                          {p.category && (
-                            <span style={{ fontSize: 11, color: "#6b7280" }}>
-                              ({p.category})
-                            </span>
-                          )}
+                      {/* ⭐ Add rating display */}
+                      {p.rating !== null && p.rating !== undefined && (
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: "#f59e0b",
+                            fontWeight: 700,
+                          }}
+                        >
+                          ⭐ {p.rating.toFixed(1)}
                         </div>
+                      )}
 
-                        {/* ⭐ Add rating display */}
-                        {p.rating !== null && (
-                          <div
-                            style={{
-                              fontSize: 13,
-                              color: "#f59e0b",
-                              fontWeight: 700,
-                            }}
-                          >
-                            ★ {p.rating.toFixed(1)}
-                          </div>
-                        )}
-                        
-                        {p.badge && (
-                          <small style={{ color: "#111827", fontSize: 11 }}>
-                            Badge: {p.badge}
-                          </small>
-                        )}
-                        <small style={{ fontSize: 11, color: "#6b7280" }}>
-                          slug: {p.slug}
+                      {p.badge && (
+                        <small style={{ color: "#111827", fontSize: 11 }}>
+                          Badge: {p.badge}
                         </small>
-                        <small style={{ fontSize: 11, color: "#6b7280" }}>
-                          Category: {p.category} | Platform: {p.platform}
-                        </small>
-                        {p.hidden && (
-                          <small style={{ color: "#9ca3af" }}>Hidden</small>
-                        )}
-                      </div>
-                      <div className="actions">
-                        <button
-                          className="btn"
-                          onClick={() => startEdit(p)}
-                          disabled={deletingId === p.id || hidingId === p.id}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn"
-                          onClick={() => toggleHidden(p)}
-                          disabled={deletingId === p.id || hidingId === p.id}
-                        >
-                          {hidingId === p.id
-                            ? "Updating..."
-                            : p.hidden
-                            ? "Unhide"
-                            : "Hide"}
-                        </button>
-                        <button
-                          className="btn danger"
-                          onClick={() => deleteProduct(p.id)}
-                          disabled={deletingId === p.id || hidingId === p.id}
-                        >
-                          {deletingId === p.id ? "Deleting..." : "Delete"}
-                        </button>
-                      </div>
-                    </>
-                  )}
+                      )}
+                      <small style={{ fontSize: 11, color: "#6b7280" }}>
+                        slug: {p.slug}
+                      </small>
+                      <small style={{ fontSize: 11, color: "#6b7280" }}>
+                        Category: {p.category} | Platform: {p.platform}
+                      </small>
+                      {p.hidden && (
+                        <small style={{ color: "#9ca3af" }}>Hidden</small>
+                      )}
+                    </div>
+                    <div className="actions">
+                      <button
+                        className="btn"
+                        onClick={() => startEdit(p)}
+                        disabled={deletingId === p.id || hidingId === p.id}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn"
+                        onClick={() => toggleHidden(p)}
+                        disabled={deletingId === p.id || hidingId === p.id}
+                      >
+                        {hidingId === p.id
+                          ? "Updating..."
+                          : p.hidden
+                          ? "Unhide"
+                          : "Hide"}
+                      </button>
+                      <button
+                        className="btn danger"
+                        onClick={() => deleteProduct(p.id)}
+                        disabled={deletingId === p.id || hidingId === p.id}
+                      >
+                        {deletingId === p.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
 
                   {isEditing && editDraft && (
                     <div className="body">
@@ -532,7 +528,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
 
                       <input
                         className="in"
-                        placeholder="Rating (0–5)"
+                        placeholder="Rating"
                         type="number"
                         min="0"
                         max="5"
@@ -573,7 +569,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                       <input
                         className="in"
                         placeholder="Image URL"
-                        value={editDraft.image}
+                        value={editDraft.image ?? ""}
                         onChange={(e) =>
                           setEditDraft({
                             ...editDraft,
@@ -585,7 +581,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                       <div className="row">
                         <select
                           className="in"
-                          value={editDraft.category}
+                          value={editDraft.category ?? ""}
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
@@ -594,14 +590,14 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                           }
                         >
                           {categoryOptions.map((d) => (
-                            <option key={d} value={d}>
+                            <option key={d} value={d ?? ""}>
                               {d}
                             </option>
                           ))}
                         </select>
                         <select
                           className="in"
-                          value={editDraft.platform}
+                          value={editDraft.platform ?? ""}
                           onChange={(e) =>
                             setEditDraft({
                               ...editDraft,
@@ -610,7 +606,7 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
                           }
                         >
                           {platformOptions.map((p) => (
-                            <option key={p} value={p}>
+                            <option key={p} value={p ?? ""}>
                               {p}
                             </option>
                           ))}
@@ -659,188 +655,156 @@ const [newProd, setNewProd] = useState<ProductForm>(new Product());
       {/* ---- Styles ---- */}
       <style jsx>{`
         .page {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          padding: 16px;
-          width: 1400px;
-          min-width: 1400px;
-          max-width: 1400px;
-          margin: 0 auto;
-          box-sizing: border-box;
+          padding: 32px;
+          display: grid;
+          gap: 20px;
         }
         .content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .headline {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          display: grid;
+          gap: 20px;
         }
         .headline h1 {
-          margin: 0;
           font-size: 28px;
+          font-weight: 800;
+          margin: 0;
         }
         .layout {
           display: grid;
-          grid-template-columns: 280px 1fr;
+          grid-template-columns: 320px 1fr;
           gap: 16px;
+          align-items: start;
         }
-        .sidebar {
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 12px;
-          background: #fff;
-        }
-        .filter-group {
-          margin-bottom: 16px;
-        }
-        .filter-group h3 {
-          margin: 0 0 8px;
-          font-size: 14px;
-          color: #374151;
-        }
-        .chk {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin: 6px 0;
-          font-size: 14px;
-        }
-        .grid {
-          display: grid;
-          grid-template-columns: repeat(5, 1fr);
-          gap: 12px;
-        }
-        @media (max-width: 1400px) {
-          .grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
-        }
-        @media (max-width: 1200px) {
-          .grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-        @media (max-width: 800px) {
-          .grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        @media (max-width: 500px) {
-          .grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        .card {
-          display: flex;
-          flex-direction: column;
-          border: 1px solid #1f2937;
-          border-radius: 4px;
-          background: #fff;
-          overflow: hidden;
-          transition: box-shadow 0.15s, transform 0.15s;
-        }
-        .card:hover {
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-          transform: translateY(-2px);
-        }
-        .card.is-hidden {
-          opacity: 0.6;
-        }
-        .thumb {
-          width: 100%;
-          height: 180px;
-          overflow: hidden;
-          background: #ffffff;
-          display: block;
-        }
-        .thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-        .body {
-          padding: 10px 12px 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .title {
-          color: #2563eb;
-          text-decoration: none;
-          font-weight: 600;
-          font-size: 14px;
-          line-height: 1.3;
-        }
-        .title:hover {
-          text-decoration: underline;
-        }
-        .price {
-          color: #111827;
-          font-weight: 700;
-          font-size: 14px;
-        }
-        .actions {
-          display: flex;
-          gap: 6px;
-          padding: 8px 10px 10px;
-        }
-        .btn {
-          padding: 6px 10px;
-          border-radius: 4px;
-          border: 1px solid #d1d5db;
-          background: #fff;
-          cursor: pointer;
-          font-size: 12px;
-          line-height: 1;
-        }
-        .btn:hover {
-          background: #f3f4f6;
-        }
-        .btn.danger {
-          border-color: #ef4444;
-          color: #ef4444;
-        }
-        .btn.danger:hover {
-          background: #fef2f2;
-        }
-        .add-form {
-          display: grid;
-          gap: 8px;
-          margin-bottom: 16px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-        .add-form h3 {
-          margin: 0;
-          font-size: 14px;
-        }
-        .in {
-          width: 100%;
-          padding: 8px 10px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 13px;
-          box-sizing: border-box;
-        }
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-        }
-        .btn.primary {
-          background: #10b981;
-          border-color: #10b981;
-          color: #fff;
-        }
-        @media (max-width: 900px) {
+        @media (max-width: 960px) {
           .layout {
             grid-template-columns: 1fr;
           }
+        }
+        .sidebar {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 12px;
+          display: grid;
+          gap: 16px;
+        }
+        .add-form {
+          display: grid;
+          gap: 10px;
+        }
+        .add-form h3 {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .filter-group {
+          border-top: 1px solid #e5e7eb;
+          padding-top: 10px;
+        }
+        .filter-group h3 {
+          font-size: 14px;
+          margin: 0 0 6px;
+        }
+        .chk {
+          display: grid;
+          grid-auto-flow: column;
+          justify-content: start;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          padding: 4px 0;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 12px;
+        }
+        .card {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          overflow: hidden;
+          display: grid;
+          background: #fff;
+        }
+        .card__top {
+          display: grid;
+          grid-template-columns: 120px 1fr;
+          gap: 12px;
+          padding: 12px;
+        }
+        @media (max-width: 640px) {
+          .card__top {
+            grid-template-columns: 1fr;
+          }
+        }
+        .img {
+          background: #f3f4f6;
+          border-radius: 8px;
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+        }
+        .img img {
+          width: 100%;
+          height: 120px;
+          object-fit: contain;
+        }
+        .meta {
+          display: grid;
+          gap: 6px;
+        }
+        .title {
+          font-weight: 700;
+          color: #111827;
+          text-decoration: none;
+          font-size: 16px;
+        }
+        .price {
+          font-weight: 800;
+          color: #111827;
+          font-size: 15px;
+        }
+        .actions {
+          display: grid;
+          grid-auto-flow: column;
+          gap: 8px;
+          align-items: start;
+        }
+        .body {
+          border-top: 1px solid #e5e7eb;
+          padding: 12px;
+          display: grid;
+          gap: 10px;
+          background: #f9fafb;
+        }
+        .in {
+          width: 100%;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-size: 14px;
+        }
+        .row {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 8px;
+        }
+        .btn {
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          padding: 8px 12px;
+          background: #fff;
+          font-weight: 600;
+          cursor: pointer;
+          color: #111827;
+        }
+        .btn.primary {
+          background: #2563eb;
+          color: #fff;
+          border-color: #1d4ed8;
+        }
+        .btn.danger {
+          background: #ef4444;
+          border-color: #dc2626;
+          color: #fff;
         }
       `}</style>
     </div>
