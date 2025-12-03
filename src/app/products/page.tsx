@@ -18,144 +18,86 @@ export default function ProductsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <p style={{ padding: 40 }}>Đang tải sản phẩm...</p>;
+  if (loading)
+    return (
+      <p className="p-10 text-center text-sm text-gray-600">
+        Đang tải sản phẩm...
+      </p>
+    );
 
   return (
-    <main
-      style={{
-        maxWidth: 1100,
-        margin: "32px auto",
-        padding: "0 24px",
-        display: "grid",
-        gap: 32,
-      }}
-    >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+    <main className="mx-auto grid max-w-5xl gap-8 px-6 py-8">
+      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0 }}>
-            Tất cả sản phẩm
-          </h1>
-          <p style={{ color: "#6b7280", fontSize: 14, marginTop: 6 }}>
+          <h1 className="text-3xl font-bold">Tất cả sản phẩm</h1>
+          <p className="mt-1 text-sm text-gray-500">
             Kho phần mềm đa dạng cho nhu cầu của bạn
           </p>
         </div>
         <Link
           href="/"
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "#2563eb",
-            textDecoration: "none",
-            padding: "8px 14px",
-            border: "1px solid #2563eb",
-            borderRadius: 8,
-          }}
+          className="rounded-lg border border-blue-600 px-3 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
         >
           ← Về trang chủ
         </Link>
       </header>
 
-      <section style={{ display: "grid", gap: 20 }}>
-        <div
-          style={{
-            display: "grid",
-            gap: 20,
-            gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
-          }}
-        >
+      <section className="grid gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {products.map((p) => (
             <div
               key={p.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 14,
-                background: "#fff",
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-              }}
+              className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white"
             >
-              <Link href={`/products/${p.slug}`} style={{ position: "relative" }}>
+              <Link
+                href={`/products/${p.slug}`}
+                className="relative block bg-gray-50"
+              >
                 <img
                   src={p.image ?? ""}
                   alt={p.title}
-                  style={{
-                    width: "100%",
-                    height: 150,
-                    objectFit: "contain",
-                    background: "#f9fafb",
-                  }}
+                  className="h-40 w-full object-contain"
                 />
                 {p.badge && (
                   <span
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      left: 8,
-                      background: "#111827",
-                      color: "#fff",
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                    }}
+                    className="absolute left-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white"
                   >
                     {p.badge}
                   </span>
                 )}
               </Link>
-              <div style={{ padding: 14, display: "grid", gap: 8 }}>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div className="grid gap-2 p-3.5">
+                <div className="flex flex-wrap gap-2">
                   {p.category && (
                     <span
-                      style={{
-                        fontSize: 11,
-                        background: "#f3f4f6",
-                        padding: "2px 8px",
-                        borderRadius: 6,
-                      }}
+                      className="rounded-md bg-gray-100 px-2 py-1 text-[11px]"
                     >
                       {p.category}
                     </span>
                   )}
                   {p.rating && (
-                    <span
-                      style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600 }}
-                    >
+                    <span className="text-[11px] font-semibold text-amber-500">
                       ★ {p.rating}
                     </span>
                   )}
                 </div>
-                <h3 style={{ fontSize: 16, margin: 0 }}>
+                <h3 className="text-base font-bold leading-tight">
                   <Link
                     href={`/products/${p.slug}`}
-                    style={{
-                      color: "#111827",
-                      textDecoration: "none",
-                      fontWeight: 700,
-                    }}
+                    className="text-gray-900 transition hover:text-gray-700"
                   >
                     {p.title}
                   </Link>
                 </h3>
                 {p.description && (
-                  <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.4 }}>
+                  <p className="text-xs leading-relaxed text-gray-500">
                     {p.description}
                   </p>
                 )}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <strong style={{ fontSize: 15 }}>${p.price}</strong>
+                <div className="flex items-center justify-between">
+                  <strong className="text-sm font-extrabold text-gray-900">
+                    ${p.price}
+                  </strong>
                 </div>
               </div>
             </div>

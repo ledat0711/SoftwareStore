@@ -200,7 +200,7 @@ export default function AdminProductsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <main className="grid gap-5">
+      <main className="mx-auto grid max-w-[2000px] gap-5">
         <section>
           <h1 className="text-3xl font-extrabold text-gray-900">
             Admin: Product Management
@@ -400,13 +400,13 @@ export default function AdminProductsPage() {
             </div>
           </aside>
 
-          <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filtered.map((p) => {
               const isEditing = editingId === p.id;
               return (
                 <article
                   key={p.id}
-                  className={`grid overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
+                  className={`grid h-full min-h-[360px] self-stretch overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
                     p.hidden ? "opacity-50" : ""
                   }`}
                 >
