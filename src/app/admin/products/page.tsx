@@ -406,8 +406,8 @@ export default function AdminProductsPage() {
               return (
                 <article
                   key={p.id}
-                  className={`grid h-full min-h-[360px] self-stretch overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
-                    p.hidden ? "opacity-50" : ""
+                  className={`grid h-full self-stretch overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
+                    p.hidden ? "opacity-50" : "" 
                   }`}
                 >
                   <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-[120px_1fr]">
