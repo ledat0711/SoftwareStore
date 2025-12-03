@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Product } from "@/types/product";
+import { CATEGORY_BASE, PLATFORM_BASE } from "@/constants/product";
+import { toggle } from "@/lib/helpers";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<{
+    category: string[];
+    platform: string[];
+  }>({ category: [], platform: [] });
 
   useEffect(() => {
     fetch("/api/products?visible=1")
@@ -17,6 +23,30 @@ export default function ProductsPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  const categoryOptions = useMemo(() => {
+    const fromDb = products.map((p) => p.category);
+    return Array.from(new Set([...CATEGORY_BASE, ...fromDb])).filter(Boolean);
+  }, [products]);
+
+  const platformOptions = useMemo(() => {
+    const fromDb = products.map((p) => p.platform);
+    return Array.from(new Set([...PLATFORM_BASE, ...fromDb])).filter(Boolean);
+  }, [products]);
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const categoryOk =
+        filters.category.length > 0
+          ? filters.category.includes(p.category ?? "")
+          : true;
+      const platformOk =
+        filters.platform.length > 0
+          ? filters.platform.includes(p.platform ?? "")
+          : true;
+      return categoryOk && platformOk;
+    });
+  }, [filters, products]);
 
   if (loading)
     return (
@@ -42,9 +72,63 @@ export default function ProductsPage() {
         </Link>
       </header>
 
-      <section className="grid gap-5">
+      <section className="grid gap-6 lg:grid-cols-[240px_1fr]">
+        <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <h3 className="text-sm font-semibold text-gray-900">Categories</h3>
+              <div className="grid gap-1.5">
+                {categoryOptions.map((c) => (
+                  <label
+                    key={c}
+                    className="flex items-center gap-2 text-sm text-gray-800"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.category.includes(c ?? "")}
+                      onChange={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          category: toggle(prev.category, c ?? ""),
+                        }))
+                      }
+                    />
+                    <span>{c}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-2 border-t border-gray-200 pt-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Available on
+              </h3>
+              <div className="grid gap-1.5">
+                {platformOptions.map((p) => (
+                  <label
+                    key={p}
+                    className="flex items-center gap-2 text-sm text-gray-800"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.platform.includes(p ?? "")}
+                      onChange={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          platform: toggle(prev.platform, p ?? ""),
+                        }))
+                      }
+                    />
+                    <span>{p}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => (
+          {filtered.map((p) => (
             <div
               key={p.id}
               className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white"
