@@ -3,17 +3,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
 
-// ⭐ Load metadata SEO từ DB
+type ProductParams = { id: string };
+
+// Load metadata SEO from DB
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<ProductParams>;
 }): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
   const product = await getProductBySlug(id);
 
   if (!product) {
-    return { title: "Không tìm thấy sản phẩm" };
+    return { title: "Khong tim thay san pham" };
   }
 
   return {
@@ -31,155 +33,168 @@ function currency(n: number) {
   return `$${n}`;
 }
 
+function shorten(text: string | null | undefined, max = 90) {
+  if (!text) return "Mo ta dang cap nhat";
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
 export default async function ProductDetail({
   params,
 }: {
-  params: { id: string };
+  params: Promise<ProductParams>;
 }) {
-  const { id } = params;
-  // ⭐ Lấy sản phẩm từ database
+  const { id } = await params;
   const p = await getProductBySlug(id);
 
   if (!p) {
     return (
-      <main style={{ maxWidth: 960, margin: "40px auto", padding: 24 }}>
-        <h1>Không tìm thấy sản phẩm</h1>
-        <Link href="/products">← Quay lại danh sách</Link>
+      <main className="mx-auto mt-10 max-w-5xl p-6">
+        <h1>Khong tim thay san pham</h1>
+        <Link href="/products">Quay lai danh sach</Link>
       </main>
     );
   }
 
-  // ⭐ Sản phẩm liên quan (lấy theo category hoặc lấy ngẫu nhiên)
   const related = await getRelatedProducts(p.id, p.category);
 
   return (
-    <main
-      style={{
-        maxWidth: 1100,
-        margin: "32px auto",
-        padding: "0 24px",
-        display: "grid",
-        gap: 28,
-      }}
-    >
-      {/* Breadcrumb */}
-      <nav style={{ fontSize: 14, color: "#6b7280" }}>
-        <Link href="/" style={{ color: "#2563eb", textDecoration: "none" }}>
-          Trang chủ
-        </Link>{" "}
-        /{" "}
-        <Link href="/products" style={{ color: "#2563eb" }}>
-          Sản phẩm
-        </Link>{" "}
-        / <span style={{ color: "#111827" }}>{p.title}</span>
-      </nav>
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white ">
+      <div className="mx-auto grid max-w-[1400px] gap-10 px-6 py-10">
+        {/* Breadcrumb */}
+        <nav className="text-sm text-slate-500">
+          <Link href="/" className="text-blue-600 hover:underline">
+            Trang chủ
+          </Link>{" "}
+          /{" "}
+          <Link href="/products" className="text-blue-600 hover:underline">
+            Sản phẩm
+          </Link>{" "}
+          / <span className="text-slate-900">{p.title}</span>
+        </nav>
 
-      {/* Hero */}
-      <section
-        style={{
-          display: "grid",
-          gap: 24,
-          gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))",
-        }}
-      >
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: 14 }}>
-          <img
-            src={p.image ?? ""}
-            alt={p.title}
-            style={{
-              width: "100%",
-              height: 320,
-              objectFit: "contain",
-              background: "#f9fafb",
-              display: "block",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "grid", gap: 12 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>
-            {p.title}
-          </h1>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              color: "#6b7280",
-            }}
-          >
-            ★ {p.rating ?? 4.8}
+        {/* Hero */}
+        <section className="grid grid-cols-1 gap-6 rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100 lg:grid-cols-[minmax(340px,1fr)_minmax(340px,1fr)]">
+          <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+            <img
+              src={p.image ?? ""}
+              alt={p.title}
+              className="block h-80 w-full rounded-xl bg-white object-contain shadow-sm"
+            />
           </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
-            <span style={{ fontSize: 24, fontWeight: 900 }}>
-              {currency(p.price)}
-            </span>
-          </div>
-
-          <p style={{ color: "#374151", lineHeight: 1.6 }}>
-            {p.description ?? ""}
-          </p>
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <AddToCartButton id={p.id} />
-            <Link
-              href="/products"
-              style={{
-                border: "1px solid #e5e7eb",
-                padding: "10px 14px",
-                borderRadius: 10,
-              }}
-            >
-              ← Danh sách
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Sản phẩm liên quan */}
-      <section style={{ display: "grid", gap: 12 }}>
-        <h2 style={{ fontSize: 20, margin: 0 }}>Sản phẩm liên quan</h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(220px,1fr))",
-            gap: 16,
-          }}
-        >
-          {related.map((r) => (
-            <div
-              key={r.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                background: "#fff",
-              }}
-            >
-              <Link href={`/products/${r.slug}`}>
-                <img
-                  src={r.image ?? ""}
-                  style={{
-                    width: "100%",
-                    height: 120,
-                    objectFit: "contain",
-                    background: "#f9fafb",
-                  }}
-                />
-              </Link>
-
-              <div style={{ padding: 12 }}>
-                <h3 style={{ fontSize: 15, margin: 0, fontWeight: 800 }}>
-                  {r.title}
-                </h3>
-                <strong>{currency(r.price)}</strong>
+          <div className="grid gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-extrabold text-slate-900">
+                  {p.title}
+                </h1>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+
+            <div className="flex flex-wrap items-center gap-3 text-slate-500">
+              <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
+                <span className="text-lg">★</span> {p.rating ?? 4.8} / 5
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-3xl font-black text-slate-900">
+                {currency(p.price)}
+              </span>
+            </div>
+
+            <p className="leading-relaxed text-gray-700">
+              {p.description ?? "Mo ta dang cap nhat"}
+            </p>
+
+            <dl className="grid grid-cols-1 gap-3 rounded-xl border border-gray-100 bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2 max-w-[300px]">
+              <div className="flex items-start gap-2">
+                <dt className="font-semibold text-slate-900">Category</dt>
+                <dd>{p.category ?? "Khac"}</dd>
+              </div>
+              <div className="flex items-start gap-2"></div>
+              <div className="flex items-start gap-2">
+                <dt className="font-semibold text-slate-900">Bảo hành</dt>
+                <dd>12 tháng</dd>
+              </div>
+            </dl>
+
+            <div className="flex flex-wrap gap-3">
+              <AddToCartButton id={p.id} />
+              <Link
+                href="/products"
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-slate-700 hover:bg-gray-50"
+              >
+                Quay lại danh sách
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Sản phẩm liên quan */}
+        <section className="grid gap-4 max-w-[1400px] mx-12">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Sản phẩm liên quan
+            </h2>
+            <Link
+              href="/products"
+              className="text-sm font-semibold text-blue-600 hover:underline"
+            >
+              Xem tất cả
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
+            {related.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <Link href={`/products/${r.slug}`}>
+                  <img
+                    src={r.image ?? ""}
+                    className="h-40 w-full bg-gray-50 object-contain transition duration-200 hover:scale-[1.02]"
+                    alt={r.title}
+                  />
+                </Link>
+
+                <div className="flex h-full flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-base font-extrabold leading-snug text-slate-900">
+                      {r.title}
+                    </h3>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                        {r.category ?? "Khac"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-slate-600">
+                    {shorten(r.description)}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span>Rating: {r.rating ?? "4.8"}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <span>Price: {currency(r.price)}</span>
+                  </div>
+                  <div className="mt-auto grid grid-cols-2 items-stretch gap-2">
+                    <Link
+                      href={`/products/${r.slug}`}
+                      className="flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
+                    >
+                      Xem chi tiết
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
