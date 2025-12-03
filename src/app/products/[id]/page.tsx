@@ -59,7 +59,7 @@ export default async function ProductDetail({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white ">
-      <div className="mx-auto grid max-w-[1400px] gap-10 px-6 py-10">
+      <div className="mx-auto grid max-w-[1280px] gap-10 px-6 py-10">
         {/* Breadcrumb */}
         <nav className="text-sm text-slate-500">
           <Link href="/" className="text-blue-600 hover:underline">
@@ -73,7 +73,7 @@ export default async function ProductDetail({
         </nav>
 
         {/* Hero */}
-        <section className="grid grid-cols-1 gap-6 rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100 lg:grid-cols-[minmax(340px,1fr)_minmax(340px,1fr)]">
+        <section className="w-full mx-auto max-w-[1400px] px-6 grid grid-cols-1 gap-6 rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100 lg:grid-cols-[minmax(340px,1fr)_minmax(340px,1fr)]">
           <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4">
             <img
               src={p.image ?? ""}
@@ -132,7 +132,7 @@ export default async function ProductDetail({
         </section>
 
         {/* Sản phẩm liên quan */}
-        <section className="grid gap-4 max-w-[1400px] mx-12">
+        <section className="w-full mx-auto max-w-[1400px] grid gap-4 px-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">
               Sản phẩm liên quan

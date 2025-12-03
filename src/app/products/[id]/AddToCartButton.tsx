@@ -1,19 +1,18 @@
 "use client";
 
-export default function AddToCartButton({ id }: { id: string }) {
+type AddToCartButtonProps = {
+  id: string;
+  className?: string;
+};
+
+export default function AddToCartButton({
+  id,
+  className = "",
+}: AddToCartButtonProps) {
   return (
     <button
-      style={{
-        background: "#111827",
-        color: "#fff",
-        border: "none",
-        padding: "10px 18px",
-        borderRadius: 8,
-        fontWeight: 600,
-        cursor: "pointer",
-        width: 160,
-      }}
       onClick={() => console.log("add-to-cart", id)}
+      className={`max-w-[150px] inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 ${className}`}
     >
       Thêm vào giỏ
     </button>
