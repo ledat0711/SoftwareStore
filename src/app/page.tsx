@@ -32,9 +32,15 @@ export default function HomePage() {
   const [recommended, setRecommended] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch("/api/products?take=4")
+    fetch("/api/products?take=4&visible=1")
       .then((r) => r.json())
-      .then(setRecommended);
+      .then((data: Product[]) =>
+        setRecommended(
+          data
+            .filter((p) => !p.hidden) // guard in case API param not respected
+            .slice(0, 4)
+        )
+      );
   }, []);
 
   return (
