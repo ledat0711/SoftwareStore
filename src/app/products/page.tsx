@@ -56,7 +56,7 @@ export default function ProductsPage() {
     );
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-8 px-6 py-8">
+    <main className="mx-auto grid max-w-7xl gap-5 px-6 py-8">
       <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold">Tất cả sản phẩm</h1>
@@ -72,11 +72,13 @@ export default function ProductsPage() {
         </Link>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[240px_1fr]">
+      <section className="grid gap-6 lg:grid-cols-[150px_1fr]">
         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <h3 className="text-sm font-semibold text-gray-900">Categories</h3>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Categories
+              </h3>
               <div className="grid gap-1.5">
                 {categoryOptions.map((c) => (
                   <label
@@ -127,35 +129,33 @@ export default function ProductsPage() {
           </div>
         </aside>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className=" grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
           {filtered.map((p) => (
             <div
               key={p.id}
-              className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white"
+              className="h-full flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white"
             >
               <Link
                 href={`/products/${p.slug}`}
-                className="relative block bg-gray-50"
+                className="relative aspect-[4/3] bg-gray-50"
               >
                 <img
                   src={p.image ?? ""}
                   alt={p.title}
-                  className="h-40 w-full object-contain"
+                  className="absolute inset-0 h-full w-full object-contain p-3"
                 />
+
                 {p.badge && (
-                  <span
-                    className="absolute left-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white"
-                  >
+                  <span className="absolute left-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white">
                     {p.badge}
                   </span>
                 )}
               </Link>
-              <div className="grid gap-2 p-3.5">
+
+              <div className="flex flex-col gap-2 p-3.5 flex-1">
                 <div className="flex flex-wrap gap-2">
                   {p.category && (
-                    <span
-                      className="rounded-md bg-gray-100 px-2 py-1 text-[11px]"
-                    >
+                    <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px]">
                       {p.category}
                     </span>
                   )}
@@ -165,20 +165,18 @@ export default function ProductsPage() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-base font-bold leading-tight">
-                  <Link
-                    href={`/products/${p.slug}`}
-                    className="text-gray-900 transition hover:text-gray-700"
-                  >
-                    {p.title}
-                  </Link>
+
+                <h3 className="text-base font-bold leading-tight line-clamp-2">
+                  {p.title}
                 </h3>
+
                 {p.description && (
-                  <p className="text-xs leading-relaxed text-gray-500">
+                  <p className="text-xs leading-relaxed text-gray-500 line-clamp-3">
                     {p.description}
                   </p>
                 )}
-                <div className="flex items-center justify-between">
+
+                <div className="mt-auto flex items-center justify-between pt-2">
                   <strong className="text-sm font-extrabold text-gray-900">
                     ${p.price}
                   </strong>
