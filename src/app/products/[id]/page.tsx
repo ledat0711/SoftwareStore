@@ -15,7 +15,7 @@ export async function generateMetadata({
   const product = await getProductBySlug(id);
 
   if (!product) {
-    return { title: "Khong tim thay san pham" };
+    return { title: "Không tìm thấy sản phẩm" };
   }
 
   return {
@@ -34,7 +34,7 @@ function currency(n: number) {
 }
 
 function shorten(text: string | null | undefined, max = 90) {
-  if (!text) return "Mo ta dang cap nhat";
+  if (!text) return "Mô tả đang cập nhật";
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
 
@@ -49,8 +49,8 @@ export default async function ProductDetail({
   if (!p) {
     return (
       <main className="mx-auto mt-10 max-w-5xl p-6">
-        <h1>Khong tim thay san pham</h1>
-        <Link href="/products">Quay lai danh sach</Link>
+        <h1>Không tìm thấy sản phẩm</h1>
+        <Link href="/products">Quay lại danh sách</Link>
       </main>
     );
   }
