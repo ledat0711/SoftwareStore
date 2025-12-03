@@ -28,7 +28,7 @@ export default function HomePage() {
     { id: "s3", title: "Secure & Reliable", subtitle: "Bảo mật và ổn định", bg: "linear-gradient(135deg,#e9d5ff,#bae6fd)" },
   ];
 
-  // ⭐ NEW: load recommended from DB
+  // NEW: load recommended from DB
   const [recommended, setRecommended] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -38,19 +38,10 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main style={{ maxWidth: 960, margin: "32px auto", padding: "0 16px", display: "grid", gap: 16 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>
+    <main className="max-w-5xl mx-auto px-4 py-8 grid gap-6">
+      <h1 className="text-3xl font-bold flex items-center gap-3">
         Trang chủ
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            padding: "2px 10px",
-            borderRadius: 999,
-            background: "#111827",
-            color: "#fff",
-          }}
-        >
+        <span className="text-sm font-semibold px-3 py-1 rounded-full bg-gray-900 text-white">
           Role: {roleString}
         </span>
       </h1>
@@ -58,84 +49,56 @@ export default function HomePage() {
       <Slider items={slides} />
 
       {/* Recommended section */}
-      <section style={{ marginTop: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", marginBottom: 12 }}>
+      <section className="mt-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-3">
           <div>
-            <h2 style={{ fontSize: 22, fontWeight: 700 }}>Gợi ý cho bạn</h2>
-            <p style={{ color: "#6b7280", fontSize: 14 }}>Một vài sản phẩm phổ biến hôm nay</p>
+            <h2 className="text-xl font-bold leading-tight">Gợi ý cho bạn</h2>
+            <p className="text-sm text-gray-500">Một vài sản phẩm phổ biến hôm nay</p>
           </div>
-          <Link href="/products" style={{ fontSize: 14, color: "#2563eb", fontWeight: 600 }}>
-            Xem tất cả →
+          <Link
+            href="/products"
+            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            Xem tất cả
           </Link>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {recommended.map((p) => (
             <div
               key={p.id}
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 14,
-                overflow: "hidden",
-                background: "#fff",
-                display: "flex",
-                flexDirection: "column",
-              }}
+              className="border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col shadow-sm"
             >
-              <Link href={`/products/${p.slug}`} style={{ position: "relative", display: "block" }}>
-                <img
-                  src={p.image || ""}
-                  alt={p.title}
-                  style={{ width: "100%", height: 140, objectFit: "contain", background: "#f9fafb" }}
-                />
+              <Link href={`/products/${p.slug}`} className="relative block bg-gray-50">
+                <img src={p.image || ""} alt={p.title} className="w-full h-36 object-contain" />
                 {p.badge && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      left: 8,
-                      background: "#111827",
-                      color: "#fff",
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      fontWeight: 600,
-                    }}
-                  >
+                  <span className="absolute top-2 left-2 bg-gray-900 text-white text-xs px-2 py-1 rounded-full font-semibold">
                     {p.badge}
                   </span>
                 )}
               </Link>
 
-              <div style={{ display: "flex", gap: 10, padding: "8px 12px 4px" }}>
-                <span style={{ fontSize: 11, background: "#f3f4f6", padding: "2px 8px", borderRadius: 6 }}>
-                  {p.category}
-                </span>
-                <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>★ {p.rating ?? "4.8"}</span>
+              <div className="flex gap-2 px-3 pt-2 pb-1 text-xs">
+                <span className="bg-gray-100 px-2 py-1 rounded-md">{p.category}</span>
+                <span className="text-amber-500 font-bold">* {p.rating ?? "4.8"}</span>
               </div>
 
-              <div style={{ padding: "0 12px 12px", display: "grid", gap: 10 }}>
-                <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
-                  <Link href={`/products/${p.slug}`} style={{ color: "#111827", textDecoration: "none" }}>
+              <div className="px-3 pb-3 grid gap-3">
+                <h3 className="text-sm font-bold leading-tight">
+                  <Link
+                    href={`/products/${p.slug}`}
+                    className="text-gray-900 hover:text-gray-700 transition-colors"
+                  >
                     {p.title}
                   </Link>
                 </h3>
-                <p style={{ fontSize: 12.5, color: "#6b7280" }}>{p.description}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{p.description}</p>
 
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#111827", fontWeight: 800, fontSize: 14 }}>${p.price}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-extrabold text-gray-900">${p.price}</span>
                   <button
                     onClick={() => console.log("add-to-cart", p.id)}
-                    style={{
-                      background: "#111827",
-                      color: "#fff",
-                      border: "none",
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
+                    className="bg-gray-900 text-white border border-transparent px-3 py-2 rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
                   >
                     Thêm
                   </button>

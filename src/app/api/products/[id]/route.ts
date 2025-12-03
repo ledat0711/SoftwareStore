@@ -27,6 +27,21 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   }
 }
 
+export async function PATCH(
+    req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await req.json();
+
+  const updated = await prisma.product.update({
+    where: { id },
+    data: body,
+  });
+
+  return NextResponse.json(updated);
+}
+
 export async function DELETE(request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
 

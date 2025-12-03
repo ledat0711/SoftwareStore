@@ -59,7 +59,7 @@ export default function AdminProductsPage() {
     platform: [],
   });
 
-  // option filter từ DB + giá trị mức mặc định
+  // option filter từ DB + giá trị mặc định
   const categoryOptions = useMemo(() => {
     const fromDb = products.map((p) => p.category);
     return Array.from(new Set([...CATEGORY_BASE, ...fromDb])).filter(Boolean);
@@ -199,20 +199,22 @@ export default function AdminProductsPage() {
   /* ----------------- JSX ----------------- */
 
   return (
-    <div className="page">
-      <main className="content">
-        <section className="headline">
-          <h1>Admin: Product Management</h1>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <main className="grid gap-5">
+        <section>
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Admin: Product Management
+          </h1>
         </section>
 
-        <div className="layout">
-          <aside className="sidebar">
+        <div className="grid items-start gap-4 lg:grid-cols-[320px_1fr]">
+          <aside className="grid gap-4 rounded-2xl border border-gray-200 bg-white p-3">
             {/* Form thêm sản phẩm */}
-            <form className="add-form" onSubmit={handleCreate}>
-              <h3>Thêm sản phẩm</h3>
+            <form className="grid gap-2.5" onSubmit={handleCreate}>
+              <h3 className="text-lg font-bold text-gray-900">Thêm sản phẩm</h3>
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Tên sản phẩm"
                 value={newProd.title}
                 onChange={(e) =>
@@ -222,7 +224,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Slug (nếu bỏ trống sẽ tự tạo)"
                 value={newProd.slug}
                 onChange={(e) =>
@@ -231,7 +233,7 @@ export default function AdminProductsPage() {
               />
 
               <textarea
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Description"
                 rows={3}
                 value={newProd.description ?? ""}
@@ -241,7 +243,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Giá"
                 type="number"
                 min="0"
@@ -257,7 +259,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Rating"
                 type="number"
                 min="0"
@@ -273,7 +275,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Category"
                 value={newProd.category ?? ""}
                 onChange={(e) =>
@@ -282,7 +284,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Badge (optional)"
                 value={newProd.badge ?? ""}
                 onChange={(e) =>
@@ -291,7 +293,7 @@ export default function AdminProductsPage() {
               />
 
               <input
-                className="in"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Image URL"
                 value={newProd.image ?? ""}
                 onChange={(e) =>
@@ -300,9 +302,9 @@ export default function AdminProductsPage() {
                 required
               />
 
-              <div className="row">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <select
-                  className="in"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newProd.category ?? ""}
                   onChange={(e) =>
                     setNewProd({ ...newProd, category: e.target.value })
@@ -316,7 +318,7 @@ export default function AdminProductsPage() {
                 </select>
 
                 <select
-                  className="in"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newProd.platform ?? ""}
                   onChange={(e) =>
                     setNewProd({ ...newProd, platform: e.target.value })
@@ -330,7 +332,7 @@ export default function AdminProductsPage() {
                 </select>
               </div>
 
-              <label className="chk" style={{ marginTop: 4 }}>
+              <label className="mt-1.5 flex items-center gap-2 text-sm text-gray-800">
                 <input
                   type="checkbox"
                   checked={newProd.hidden}
@@ -341,16 +343,24 @@ export default function AdminProductsPage() {
                 <span>Hidden</span>
               </label>
 
-              <button className="btn primary" type="submit">
+              <button
+                className="inline-flex items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
+                type="submit"
+              >
                 Add
               </button>
             </form>
 
             {/* Filter */}
-            <div className="filter-group">
-              <h3>Categories</h3>
+            <div className="border-t border-gray-200 pt-3">
+              <h3 className="mb-1.5 text-sm font-semibold text-gray-900">
+                Categories
+              </h3>
               {categoryOptions.map((category) => (
-                <label key={category} className="chk">
+                <label
+                  key={category}
+                  className="grid grid-flow-col items-center justify-start gap-2 py-1 text-sm text-gray-800"
+                >
                   <input
                     type="checkbox"
                     checked={filters.category.includes(category ?? "")}
@@ -365,10 +375,15 @@ export default function AdminProductsPage() {
                 </label>
               ))}
             </div>
-            <div className="filter-group">
-              <h3>Available on</h3>
+            <div className="border-t border-gray-200 pt-3">
+              <h3 className="mb-1.5 text-sm font-semibold text-gray-900">
+                Available on
+              </h3>
               {platformOptions.map((p) => (
-                <label key={p} className="chk">
+                <label
+                  key={p}
+                  className="grid grid-flow-col items-center justify-start gap-2 py-1 text-sm text-gray-800"
+                >
                   <input
                     type="checkbox"
                     checked={filters.platform.includes(p ?? "")}
@@ -385,31 +400,43 @@ export default function AdminProductsPage() {
             </div>
           </aside>
 
-          <section className="grid">
+          <section className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
             {filtered.map((p) => {
               const isEditing = editingId === p.id;
               return (
-                <article key={p.id} className="card">
-                  <div className="card__top">
-                    <div className="img">
+                <article
+                  key={p.id}
+                  className={`grid overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
+                    p.hidden ? "opacity-50" : ""
+                  }`}
+                >
+                  <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-[120px_1fr]">
+                    <div className="grid place-items-center overflow-hidden rounded-xl bg-gray-100">
                       <img
-                        src={(isEditing && editDraft ? editDraft.image : p.image) ?? ""}
+                        src={
+                          (isEditing && editDraft
+                            ? editDraft.image
+                            : p.image) ?? ""
+                        }
                         alt={p.title}
+                        className="h-[120px] w-full object-contain"
                       />
                     </div>
-                    <div className="meta">
+                    <div className="grid gap-1.5">
                       <a
-                        className="title"
+                        className="text-base font-bold text-gray-900 transition hover:text-blue-600"
                         href={`/products/${p.slug}`}
                         target="_blank"
                         rel="noreferrer"
                       >
                         {p.title}
                       </a>
-                      <div className="price">
-                        ${p.price.toFixed(2)}{" "}
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-extrabold text-gray-900">
+                          ${p.price.toFixed(2)}
+                        </span>{" "}
                         {p.category && (
-                          <span style={{ fontSize: 11, color: "#6b7280" }}>
+                          <span className="text-[11px] text-gray-500">
                             ({p.category})
                           </span>
                         )}
@@ -417,42 +444,39 @@ export default function AdminProductsPage() {
 
                       {/* ⭐ Add rating display */}
                       {p.rating !== null && p.rating !== undefined && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "#f59e0b",
-                            fontWeight: 700,
-                          }}
-                        >
+                        <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
                           ⭐ {p.rating.toFixed(1)}
                         </div>
                       )}
 
                       {p.badge && (
-                        <small style={{ color: "#111827", fontSize: 11 }}>
-                          Badge: {p.badge}
+                        <small className="text-[11px] text-gray-900">
+                          Badge:{" "}
+                          <span className="font-semibold text-blue-600">
+                            {p.badge}
+                          </span>
                         </small>
                       )}
-                      <small style={{ fontSize: 11, color: "#6b7280" }}>
+                      <small className="text-[11px] text-gray-500">
                         slug: {p.slug}
                       </small>
-                      <small style={{ fontSize: 11, color: "#6b7280" }}>
+                      <small className="text-[11px] text-gray-500">
                         Category: {p.category} | Platform: {p.platform}
                       </small>
                       {p.hidden && (
-                        <small style={{ color: "#9ca3af" }}>Hidden</small>
+                        <small className="text-xs text-gray-400">Hidden</small>
                       )}
                     </div>
-                    <div className="actions">
+                    <div className="grid grid-flow-col items-start gap-2">
                       <button
-                        className="btn"
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                         onClick={() => startEdit(p)}
                         disabled={deletingId === p.id || hidingId === p.id}
                       >
                         Edit
                       </button>
                       <button
-                        className="btn"
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                         onClick={() => toggleHidden(p)}
                         disabled={deletingId === p.id || hidingId === p.id}
                       >
@@ -463,7 +487,7 @@ export default function AdminProductsPage() {
                           : "Hide"}
                       </button>
                       <button
-                        className="btn danger"
+                        className="rounded-lg border border-red-600 bg-red-500 px-3 py-2 font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-70"
                         onClick={() => deleteProduct(p.id)}
                         disabled={deletingId === p.id || hidingId === p.id}
                       >
@@ -473,9 +497,9 @@ export default function AdminProductsPage() {
                   </div>
 
                   {isEditing && editDraft && (
-                    <div className="body">
+                    <div className="grid gap-2.5 border-t border-gray-200 bg-gray-50 p-3">
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Tên sản phẩm"
                         value={editDraft.title}
                         onChange={(e) =>
@@ -487,7 +511,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Slug"
                         value={editDraft.slug}
                         onChange={(e) =>
@@ -499,7 +523,7 @@ export default function AdminProductsPage() {
                       />
 
                       <textarea
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Description"
                         rows={3}
                         value={editDraft.description ?? ""}
@@ -512,7 +536,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Giá"
                         type="number"
                         min="0"
@@ -527,7 +551,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Rating"
                         type="number"
                         min="0"
@@ -543,7 +567,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Category"
                         value={editDraft.category ?? ""}
                         onChange={(e) =>
@@ -555,7 +579,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Badge"
                         value={editDraft.badge ?? ""}
                         onChange={(e) =>
@@ -567,7 +591,7 @@ export default function AdminProductsPage() {
                       />
 
                       <input
-                        className="in"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Image URL"
                         value={editDraft.image ?? ""}
                         onChange={(e) =>
@@ -578,9 +602,9 @@ export default function AdminProductsPage() {
                         }
                       />
 
-                      <div className="row">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <select
-                          className="in"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           value={editDraft.category ?? ""}
                           onChange={(e) =>
                             setEditDraft({
@@ -596,7 +620,7 @@ export default function AdminProductsPage() {
                           ))}
                         </select>
                         <select
-                          className="in"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           value={editDraft.platform ?? ""}
                           onChange={(e) =>
                             setEditDraft({
@@ -613,7 +637,7 @@ export default function AdminProductsPage() {
                         </select>
                       </div>
 
-                      <label className="chk">
+                      <label className="flex items-center gap-2 text-sm text-gray-800">
                         <input
                           type="checkbox"
                           checked={editDraft.hidden}
@@ -627,16 +651,16 @@ export default function AdminProductsPage() {
                         <span>Hidden</span>
                       </label>
 
-                      <div className="actions">
+                      <div className="grid grid-flow-col items-start gap-2">
                         <button
-                          className="btn primary"
+                          className="rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                           onClick={saveEdit}
                           disabled={saving}
                         >
                           {saving ? "Saving..." : "Save"}
                         </button>
                         <button
-                          className="btn"
+                          className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
                           onClick={cancelEdit}
                           disabled={saving}
                         >
@@ -651,162 +675,6 @@ export default function AdminProductsPage() {
           </section>
         </div>
       </main>
-
-      {/* ---- Styles ---- */}
-      <style jsx>{`
-        .page {
-          padding: 32px;
-          display: grid;
-          gap: 20px;
-        }
-        .content {
-          display: grid;
-          gap: 20px;
-        }
-        .headline h1 {
-          font-size: 28px;
-          font-weight: 800;
-          margin: 0;
-        }
-        .layout {
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 16px;
-          align-items: start;
-        }
-        @media (max-width: 960px) {
-          .layout {
-            grid-template-columns: 1fr;
-          }
-        }
-        .sidebar {
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 12px;
-          display: grid;
-          gap: 16px;
-        }
-        .add-form {
-          display: grid;
-          gap: 10px;
-        }
-        .add-form h3 {
-          font-size: 18px;
-          font-weight: 700;
-          margin: 0;
-        }
-        .filter-group {
-          border-top: 1px solid #e5e7eb;
-          padding-top: 10px;
-        }
-        .filter-group h3 {
-          font-size: 14px;
-          margin: 0 0 6px;
-        }
-        .chk {
-          display: grid;
-          grid-auto-flow: column;
-          justify-content: start;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          padding: 4px 0;
-        }
-        .grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 12px;
-        }
-        .card {
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          overflow: hidden;
-          display: grid;
-          background: #fff;
-        }
-        .card__top {
-          display: grid;
-          grid-template-columns: 120px 1fr;
-          gap: 12px;
-          padding: 12px;
-        }
-        @media (max-width: 640px) {
-          .card__top {
-            grid-template-columns: 1fr;
-          }
-        }
-        .img {
-          background: #f3f4f6;
-          border-radius: 8px;
-          overflow: hidden;
-          display: grid;
-          place-items: center;
-        }
-        .img img {
-          width: 100%;
-          height: 120px;
-          object-fit: contain;
-        }
-        .meta {
-          display: grid;
-          gap: 6px;
-        }
-        .title {
-          font-weight: 700;
-          color: #111827;
-          text-decoration: none;
-          font-size: 16px;
-        }
-        .price {
-          font-weight: 800;
-          color: #111827;
-          font-size: 15px;
-        }
-        .actions {
-          display: grid;
-          grid-auto-flow: column;
-          gap: 8px;
-          align-items: start;
-        }
-        .body {
-          border-top: 1px solid #e5e7eb;
-          padding: 12px;
-          display: grid;
-          gap: 10px;
-          background: #f9fafb;
-        }
-        .in {
-          width: 100%;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 8px 10px;
-          font-size: 14px;
-        }
-        .row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 8px;
-        }
-        .btn {
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          padding: 8px 12px;
-          background: #fff;
-          font-weight: 600;
-          cursor: pointer;
-          color: #111827;
-        }
-        .btn.primary {
-          background: #2563eb;
-          color: #fff;
-          border-color: #1d4ed8;
-        }
-        .btn.danger {
-          background: #ef4444;
-          border-color: #dc2626;
-          color: #fff;
-        }
-      `}</style>
     </div>
   );
 }
