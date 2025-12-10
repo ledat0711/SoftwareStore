@@ -9,7 +9,9 @@ type RouteContext = {
 export async function GET(request: NextRequest, { params }: RouteContext) {
   const { id: string } = await params;
 
-  const product: Product | null = await prisma.product.findUnique({ where: { id: string } });
+  const product: Product | null = await prisma.product.findUnique({
+    where: { id: string },
+  });
   if (!product) {
     return new NextResponse("Product not found", { status: 404 });
   }
@@ -21,19 +23,19 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
   const body = await request.json();
 
   try {
-    const updatedProduct: Product = await prisma.product.update({ where: { id: string }, data: body });
+    const updatedProduct: Product = await prisma.product.update({
+      where: { id: string },
+      data: body,
+    });
     return NextResponse.json(updatedProduct);
   } catch {
     return new NextResponse("Update failed", { status: 400 });
   }
 }
 
-export async function PATCH(
-    req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: RouteContext) {
   const { id } = await params;
-  const body = await req.json();
+  const body = await request.json();
 
   const updatedProduct: Product = await prisma.product.update({
     where: { id },
