@@ -11,27 +11,6 @@ import {
 } from "@/constants/product";
 import { Product } from "@/types/product";
 
-/* ----------------- Types ----------------- */
-
-class ProductModel implements Product {
-  id: string = "";
-  slug: string = "";
-  title: string = "";
-  description: string | null = "";
-  image: string | null = "";
-  price: number = 0;
-  rating: number | null = 0;
-  tag: string | null = "";
-  badge: string | null = "";
-  category: string = DEFAULT_CATEGORY;
-  platform: string = DEFAULT_PLATFORM;
-  hidden: boolean = false;
-
-  constructor(init?: Partial<Product>) {
-    Object.assign(this, init);
-  }
-}
-
 type ProductForm = Omit<Product, "id">;
 
 export default function AdminProductsPage() {
@@ -47,7 +26,7 @@ export default function AdminProductsPage() {
 
   // ----- Form thêm mới-----
   const [newProd, setNewProd] = useState<ProductForm>(
-    new ProductModel({ category: DEFAULT_CATEGORY, platform: DEFAULT_PLATFORM })
+    new Product({ category: DEFAULT_CATEGORY, platform: DEFAULT_PLATFORM })
   );
 
   // ----- Filter -----
@@ -60,23 +39,23 @@ export default function AdminProductsPage() {
   });
 
   // option filter từ DB + giá trị mặc định
-  const categoryOptions = useMemo(() => {
-    const fromDb = products.map((p) => p.category);
+  const categoryOptions: (string | null)[] = useMemo(() => {
+    const fromDb: (string | null)[]  = products.map((p) => p.category);
     return Array.from(new Set([...CATEGORY_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
-  const platformOptions = useMemo(() => {
-    const fromDb = products.map((p) => p.platform);
+  const platformOptions: (string | null)[] = useMemo(() => {
+    const fromDb: (string | null)[] = products.map((p) => p.platform);
     return Array.from(new Set([...PLATFORM_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
-  const filtered = useMemo(() => {
+  const filtered: Product[] = useMemo(() => {
     return products.filter((p) => {
-      const categoryOk =
+      const categoryOk: boolean =
         filters.category.length > 0
           ? filters.category.includes(p.category ?? "")
           : true;
-      const platOk =
+      const platOk: boolean =
         filters.platform.length > 0
           ? filters.platform.includes(p.platform ?? "")
           : true;
@@ -94,7 +73,7 @@ export default function AdminProductsPage() {
 
   function startEdit(p: Product) {
     setEditingId(p.id);
-    setEditDraft(new ProductModel(p));
+    setEditDraft(new Product(p));
   }
 
   function cancelEdit() {
@@ -112,7 +91,7 @@ export default function AdminProductsPage() {
         slug: editDraft.slug || slugify(editDraft.title),
       };
 
-      const res = await fetch(`/api/products/${editingId}`, {
+      const res: Response = await fetch(`/api/products/${editingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -136,7 +115,7 @@ export default function AdminProductsPage() {
     if (!confirm("Xóa sản phẩm này?")) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+      const res: Response = await fetch(`/api/products/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       setProducts((prev) => prev.filter((p) => p.id !== id));
       if (editingId === id) cancelEdit();
@@ -149,10 +128,10 @@ export default function AdminProductsPage() {
 
   // ----- Toggle hidden -----
   async function toggleHidden(p: Product) {
-    const nextHidden = !p.hidden;
+    const nextHidden: boolean = !p.hidden;
     setHidingId(p.id);
     try {
-      const res = await fetch(`/api/products/${p.id}`, {
+      const res: Response = await fetch(`/api/products/${p.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hidden: nextHidden }),
@@ -179,7 +158,7 @@ export default function AdminProductsPage() {
       slug: newProd.slug || slugify(newProd.title),
     };
 
-    const res = await fetch("/api/products", {
+    const res: Response = await fetch("/api/products", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -187,9 +166,9 @@ export default function AdminProductsPage() {
     if (!res.ok) return;
 
     const created: Product = await res.json();
-    setProducts((prev) => [new ProductModel(created), ...prev]);
+    setProducts((prev) => [new Product(created), ...prev]);
     setNewProd(
-      new ProductModel({
+      new Product({
         category: DEFAULT_CATEGORY,
         platform: DEFAULT_PLATFORM,
       })
@@ -402,7 +381,7 @@ export default function AdminProductsPage() {
 
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filtered.map((p) => {
-              const isEditing = editingId === p.id;
+              const isEditing: boolean = editingId === p.id;
               return (
                 <article
                   key={p.id}
@@ -461,7 +440,9 @@ export default function AdminProductsPage() {
                         slug: {p.slug}
                       </small>
                       <small className="text-[11px] text-gray-500">
-                        Category: {p.category} | Platform: {p.platform}
+                        Category: {p.category}
+                        <br/>
+                        Platform: {p.platform}
                       </small>
                       {p.hidden && (
                         <small className="text-xs text-gray-400">Hidden</small>

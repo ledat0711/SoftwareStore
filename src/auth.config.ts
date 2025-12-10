@@ -1,11 +1,17 @@
-import type { NextAuthConfig } from "next-auth"
-import GitHub from "next-auth/providers/github"
-import Google from "next-auth/providers/google"
+import type { NextAuthConfig } from "next-auth";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs"
-import prisma from "@/lib/prisma"
+import bcrypt from "bcryptjs";
+import prisma from "@/lib/prisma";
 
-const ADMIN_EMAILS = new Set(["leanhdat1994@gmail.com"])
+const ADMIN_EMAILS = new Set(
+  [process.env.DEFAULT_ADMINS]
+    .filter(Boolean)
+    .flatMap((raw) => String(raw).split(","))
+    .map((email) => email.trim())
+    .filter(Boolean)
+);
 
 const authConfig = {
   providers: [
@@ -17,27 +23,30 @@ const authConfig = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing username or password")
+          throw new Error("Missing username or password");
         }
 
         const user = await prisma.user.findUnique({
           where: { email: String(credentials.email) },
-        })
+        });
 
         if (!user || !user.password) {
-          throw new Error("User not found or missing password")
+          throw new Error("User not found or missing password");
         }
 
-        const isValid = await bcrypt.compare(String(credentials.password), user.password)
+        const isValid = await bcrypt.compare(
+          String(credentials.password),
+          user.password
+        );
         if (!isValid) {
-          throw new Error("Invalid credentials")
+          throw new Error("Invalid credentials");
         }
 
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-        }
+        };
       },
     }),
     GitHub({
@@ -57,25 +66,26 @@ const authConfig = {
   callbacks: {
     async jwt({ token, user }) {
       // Ưu tiên email từ user (lần đăng nhập đầu) sau đó tới token.email
-      const email = user?.email ?? (token.email as string | undefined)
+      const email = user?.email ?? (token.email as string | undefined);
       if (email) {
-        token.role = ADMIN_EMAILS.has(email) ? "ADMIN" : "USER"
+        token.role = ADMIN_EMAILS.has(email) ? "ADMIN" : "USER";
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.role = (token.role as "ADMIN" | "USER") ?? "USER"
-      return session
+      if (session.user)
+        session.user.role = (token.role as "ADMIN" | "USER") ?? "USER";
+      return session;
     },
 
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(baseUrl)) return url
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      return baseUrl
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      return baseUrl;
     },
   },
 
   secret: process.env.AUTH_SECRET,
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;
 
-export default authConfig
+export default authConfig;

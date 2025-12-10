@@ -2,29 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-type SlideItem = {
-  id: string;
-  title: string;
-  subtitle?: string;
-  bg?: string;
-  titleClass?: string;
-  subtitleClass?: string;
-};
-
-type Props = {
-  items: SlideItem[];
-};
-
-export default function Slider({ items }: Props) {
+export default function Slider({ items }: { items: SlideItem[] }) {
   const [i, setI] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % items.length), 4000);
+    const t: NodeJS.Timeout = setInterval(() => setI((p) => (p + 1) % items.length), 4000);
     return () => clearInterval(t);
   }, [items.length]);
 
-  const prev = () => setI((p) => (p - 1 + items.length) % items.length);
-  const next = () => setI((p) => (p + 1) % items.length);
+  const prev: () => void = () => setI((p) => (p - 1 + items.length) % items.length);
+  const next: () => void = () => setI((p) => (p + 1) % items.length);
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-200">

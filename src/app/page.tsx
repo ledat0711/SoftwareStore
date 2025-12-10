@@ -13,11 +13,11 @@ type AppUser = {
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const role = (session?.user as AppUser)?.role;
-  const roleString =
+  const role: Role | undefined = (session?.user as AppUser)?.role;
+  const roleString: string =
     role && ROLE_LABELS[role as Role] ? ROLE_LABELS[role] : "Not signed in";
 
-  const slides = [
+  const slides: SlideItem[] = [
     {
       id: "s1",
       title: "Welcome to Software Store",

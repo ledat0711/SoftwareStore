@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import NavBar from "@/components/NavBar";
+import { Session } from "next-auth";
 
 export default function Header() {
-  const { data: session } = useSession();
+  const { data: session }: { data: Session | null }  = useSession();
 
   return (
     <header className="w-full bg-white shadow-md">

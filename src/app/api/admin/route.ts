@@ -1,8 +1,9 @@
 import { auth } from "@/auth"
+import { Session } from "next-auth";
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  const session = await auth()
+  const session: Session | null = await auth()
   console.log("session@/api/admin:", session?.user) // debug
   if (!session?.user || session.user.role !== "ADMIN") {
     return new NextResponse("Forbidden", { status: 403 })

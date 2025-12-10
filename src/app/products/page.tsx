@@ -24,23 +24,23 @@ export default function ProductsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const categoryOptions = useMemo(() => {
-    const fromDb = products.map((p) => p.category);
+  const categoryOptions: (string | null)[] = useMemo(() => {
+    const fromDb: (string | null)[] = products.map((p) => p.category);
     return Array.from(new Set([...CATEGORY_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
-  const platformOptions = useMemo(() => {
-    const fromDb = products.map((p) => p.platform);
+  const platformOptions: (string | null)[] = useMemo(() => {
+    const fromDb: (string | null)[] = products.map((p) => p.platform);
     return Array.from(new Set([...PLATFORM_BASE, ...fromDb])).filter(Boolean);
   }, [products]);
 
-  const filtered = useMemo(() => {
+  const filtered: Product[] = useMemo(() => {
     return products.filter((p) => {
-      const categoryOk =
+      const categoryOk: boolean =
         filters.category.length > 0
           ? filters.category.includes(p.category ?? "")
           : true;
-      const platformOk =
+      const platformOk: boolean =
         filters.platform.length > 0
           ? filters.platform.includes(p.platform ?? "")
           : true;

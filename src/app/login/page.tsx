@@ -8,10 +8,11 @@ import { SigninButton } from "@/components/auth/signin-button"
 import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { status } = useSession()
+  const router: AppRouterInstance  = useRouter()
+  const { status }: { status: "loading" | "authenticated" | "unauthenticated" } = useSession()
 
   // Nếu đã đăng nhập, tự động về Hompage "localhost:3000/"
   useEffect(() => {
@@ -20,7 +21,6 @@ export default function LoginPage() {
     }
   }, [status, router])
 
-  console.log("test *** router")
   console.log(router)
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">

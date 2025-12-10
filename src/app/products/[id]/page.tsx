@@ -2,6 +2,7 @@ import { getProductBySlug, getRelatedProducts } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
+import { Product } from "@/types/product";
 
 type ProductParams = { id: string };
 
@@ -11,8 +12,8 @@ export async function generateMetadata({
 }: {
   params: Promise<ProductParams>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  const product = await getProductBySlug(id);
+  const { id }: ProductParams = await params;
+  const product: Product | null  = await getProductBySlug(id);
 
   if (!product) {
     return { title: "Không tìm thấy sản phẩm" };
@@ -43,8 +44,8 @@ export default async function ProductDetail({
 }: {
   params: Promise<ProductParams>;
 }) {
-  const { id } = await params;
-  const p = await getProductBySlug(id);
+  const { id }: ProductParams = await params;
+  const p: Product | null = await getProductBySlug(id);
 
   if (!p) {
     return (
@@ -55,7 +56,7 @@ export default async function ProductDetail({
     );
   }
 
-  const related = await getRelatedProducts(p.id, p.category);
+  const related: Product[] = await getRelatedProducts(p.id, p.category);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white ">

@@ -2,10 +2,12 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signIn, signOut } from "next-auth/react"
+import { Session } from "next-auth"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 
 export default function UserGate() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const { data: session, status }: { data: Session | null; status: "loading" | "authenticated" | "unauthenticated" } = useSession()
+  const router: AppRouterInstance = useRouter()
 
   if (status === "loading") return <p>Loading...</p>
 
@@ -13,7 +15,7 @@ export default function UserGate() {
     return <button onClick={() => signIn(undefined, { callbackUrl: "/dashboard" })}>Sign in</button>
   }
 
-  const role = session.user?.role
+  const role: "USER" | "ADMIN" | undefined = session.user?.role
 
   return (
     <div>

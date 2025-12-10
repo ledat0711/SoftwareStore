@@ -11,10 +11,10 @@ type AppUser = {
 
 export default function NavBar() {
   const { data: session } = useSession();
-  const pathname = usePathname();
+  const pathname: string = usePathname();
 
-  const role = (session?.user as AppUser)?.role;
-  const isAdmin = role === ROLES.ADMIN;
+  const role: Role | undefined = (session?.user as AppUser)?.role;
+  const isAdmin: boolean = role === ROLES.ADMIN;
 
   type NavItem = { label: string; href: string };
   const baseItems: NavItem[] = [
@@ -26,13 +26,13 @@ export default function NavBar() {
     { label: "Quản lý đơn hàng", href: "/admin/orders" },
     { label: "Quản lý người dùng", href: "/admin/users" },
   ];
-  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
+  const items: NavItem[] = isAdmin ? [...baseItems, ...adminItems] : baseItems;
 
   return (
     <div className="px-8 pb-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 border rounded-md p-2">
         {items.map((item) => {
-          const active = pathname === item.href;
+          const active: boolean = pathname === item.href;
           return (
             <Link
               key={item.href}

@@ -1,14 +1,16 @@
-import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { slugify } from "@/lib/helpers";
+import { Product } from "@/types/product";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const takeParam = searchParams.get("take");
-  const onlyVisible = searchParams.get("visible");
+  const { searchParams }: { searchParams: URLSearchParams } = new URL(req.url);
+  const takeParam: string | null = searchParams.get("take");
+  const onlyVisible: string | null = searchParams.get("visible");
 
-  const take = takeParam ? parseInt(takeParam) : undefined;
+  const take: number | undefined = takeParam ? parseInt(takeParam) : undefined;
 
-  const products = await prisma.product.findMany({
+  const products: Product[] = await prisma.product.findMany({
     where: {
       hidden: onlyVisible === "1" ? false : undefined,
     },
@@ -20,11 +22,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body: Product = await req.json();
+  const slug = body.slug || slugify(body.title);
 
-  const created = await prisma.product.create({
+  const created: Product = await prisma.product.create({
     data: {
-      slug: body.slug || body.title.toLowerCase().replace(/\s+/g, "-"),
+      slug,
       title: body.title,
       description: body.description ?? "",
       image: body.image,
