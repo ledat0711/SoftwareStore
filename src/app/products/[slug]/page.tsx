@@ -4,7 +4,7 @@ import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
 import { Product } from "@/types/product";
 
-type ProductParams = { id: string };
+type ProductParams = { slug: string };
 
 // Load metadata SEO from DB
 export async function generateMetadata({
@@ -12,8 +12,8 @@ export async function generateMetadata({
 }: {
   params: Promise<ProductParams>;
 }): Promise<Metadata> {
-  const { id }: ProductParams = await params;
-  const product: Product | null  = await getProductBySlug(id);
+  const { slug }: ProductParams = await params;
+  const product: Product | null  = await getProductBySlug(slug);
 
   if (!product) {
     return { title: "Không tìm thấy sản phẩm" };
@@ -44,8 +44,8 @@ export default async function ProductDetail({
 }: {
   params: Promise<ProductParams>;
 }) {
-  const { id }: ProductParams = await params;
-  const p: Product | null = await getProductBySlug(id);
+  const { slug }: ProductParams = await params;
+  const p: Product | null = await getProductBySlug(slug);
 
   if (!p) {
     return (

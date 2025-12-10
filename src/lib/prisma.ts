@@ -1,3 +1,18 @@
+// ******* CLOUD *******
+// import { PrismaClient } from '@prisma/client/edge'
+// import { withAccelerate } from '@prisma/extension-accelerate'
+
+// const globalForPrisma = global as unknown as {
+//     prisma: PrismaClient
+// }
+
+// const prisma = globalForPrisma.prisma || new PrismaClient().$extends(withAccelerate())
+
+// if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// export default prisma
+
+
 // ******* LOCAL *******
 import { Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
@@ -20,6 +35,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;
 
+
 // -------- Product helpers --------
 export async function getProductBySlug(slug: string) {
   return prisma.product.findUnique({
@@ -39,17 +55,3 @@ export async function getRelatedProducts(
     take: 4,
   });
 }
-
-// ******* CLOUD *******
-// import { PrismaClient } from '@prisma/client/edge'
-// import { withAccelerate } from '@prisma/extension-accelerate'
-
-// const globalForPrisma = global as unknown as {
-//     prisma: PrismaClient
-// }
-
-// const prisma = globalForPrisma.prisma || new PrismaClient().$extends(withAccelerate())
-
-// if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-
-// export default prisma
