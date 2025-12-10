@@ -1,14 +1,12 @@
 "use client";
 
-type AddToCartButtonProps = {
-  id: string;
-  className?: string;
-};
-
 export default function AddToCartButton({
   id,
   className = "",
-}: AddToCartButtonProps) {
+}: {
+  id: string;
+  className?: string;
+}) {
   return (
     <button
       onClick={() => console.log("add-to-cart", id)}

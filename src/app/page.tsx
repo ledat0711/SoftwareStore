@@ -1,57 +1,51 @@
-"use client";
-
 import Slider from "@/components/Slider";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Product } from "@/types/product";
 import { ROLES, ROLE_LABELS, Role } from "@/constants/role";
+import prisma from "@/lib/prisma";
+import { auth } from "@/auth";
 
 type AppUser = {
   role?: Role;
 };
 
-export default function HomePage() {
-  const { data: session } = useSession();
+function currency(n: number) {
+  return `$${n}`;
+}
+
+const slides: SlideItem[] = [
+  {
+    id: "s1",
+    title: "Welcome to Software Store",
+    titleClass: "text-white",
+    bg: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5HU26ZSS3Tgted_TMty0wzqMQYpm03yD7eAPRtQBYO5dMlD18uZxNDuKXvpqAKGFYXbR3E2AUl4SjJkn2wMOGpMzW_eL9bead7iYs2rnbclM65KqMluL9PQUxrK9Ly91WqD2mOR04qP8KhlAr9sCYHV0ITD7w0VDwUVc0OS0dlZQzX_mQjmIhqTnlbcK5QYa0bZ0JBvUwPmYg3m28w--&h=576') center/cover no-repeat",
+  },
+  {
+    id: "s2",
+    title: "Performance Optimization",
+    subtitle: "Tối ưu hiệu suất",
+    bg: "linear-gradient(135deg,#fde68a,#fecaca)",
+  },
+  {
+    id: "s3",
+    title: "Secure & Reliable",
+    subtitle: "Bảo mật và ổn định",
+    bg: "linear-gradient(135deg,#e9d5ff,#bae6fd)",
+  },
+];
+
+export default async function HomePage() {
+  const session = await auth();
   const role: Role | undefined = (session?.user as AppUser)?.role;
   const roleString: string =
     role && ROLE_LABELS[role as Role] ? ROLE_LABELS[role] : "Not signed in";
 
-  const slides: SlideItem[] = [
-    {
-      id: "s1",
-      title: "Welcome to Software Store",
-      titleClass: "text-white",
-      bg: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5HU26ZSS3Tgted_TMty0wzqMQYpm03yD7eAPRtQBYO5dMlD18uZxNDuKXvpqAKGFYXbR3E2AUl4SjJkn2wMOGpMzW_eL9bead7iYs2rnbclM65KqMluL9PQUxrK9Ly91WqD2mOR04qP8KhlAr9sCYHV0ITD7w0VDwUVc0OS0dlZQzX_mQjmIhqTnlbcK5QYa0bZ0JBvUwPmYg3m28w--&h=576') center/cover no-repeat",
+  const recommended = await prisma.product.findMany({
+    where: {
+      hidden: false,
     },
-    {
-      id: "s2",
-      title: "Performance Optimization",
-      subtitle: "Tối ưu hiệu suất",
-      bg: "linear-gradient(135deg,#fde68a,#fecaca)",
-    },
-    {
-      id: "s3",
-      title: "Secure & Reliable",
-      subtitle: "Bảo mật và ổn định",
-      bg: "linear-gradient(135deg,#e9d5ff,#bae6fd)",
-    },
-  ];
-
-  // NEW: load recommended from DB
-  const [recommended, setRecommended] = useState<Product[]>([]);
-
-  useEffect(() => {
-    fetch("/api/products?take=4&visible=1")
-      .then((r) => r.json())
-      .then((data: Product[]) =>
-        setRecommended(
-          data
-            .filter((p) => !p.hidden) // guard in case API param not respected
-            .slice(0, 4)
-        )
-      );
-  }, []);
+    take: 4,
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 grid gap-6">
@@ -108,7 +102,7 @@ export default function HomePage() {
                   {p.category}
                 </span>
                 <span className="text-amber-500 font-bold">
-                  * {p.rating ?? "4.8"}
+                  ★ {p.rating ?? "4.8"}
                 </span>
               </div>
 
@@ -127,14 +121,14 @@ export default function HomePage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-base font-extrabold text-gray-900">
-                    ${p.price}
+                    {currency(p.price)}
                   </span>
-                  <button
-                    onClick={() => console.log("add-to-cart", p.id)}
+                  <Link
+                    href={`/products/${p.slug}`}
                     className="bg-gray-900 text-white border border-transparent px-3 py-2 rounded-lg text-xs font-semibold hover:bg-gray-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900"
                   >
-                    Thêm
-                  </button>
+                    Xem
+                  </Link>
                 </div>
               </div>
             </div>

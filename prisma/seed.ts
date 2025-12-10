@@ -56,7 +56,7 @@ const allProducts = [
   {
     id: "figma-pro",
     title: "Figma Professional",
-    description: "Thiết kế UI/UX cộng tác realtime.",
+    description: "Thiết kế UI/UX.",
     image:
       "https://digimarket.com.vn/wp-content/uploads/2024/08/figma-professional.webp",
     price: 120,
@@ -86,7 +86,7 @@ const allProducts = [
   {
     id: "postman-pro",
     title: "Postman Pro",
-    description: "Kiểm thử API cộng tác.",
+    description: "Kiểm thử API.",
     image: "https://voyager.postman.com/logo/postman-logo-icon-orange.svg",
     price: 89,
     rating: 4.6,

@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-     <html lang="en">
+     <html lang="en" className="mdl-js">
       <body>
         <Providers>
           <div className="min-h-screen flex flex-col">
