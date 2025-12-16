@@ -1,7 +1,7 @@
 import Slider from "@/components/Slider";
 import Link from "next/link";
-import { ROLES, ROLE_LABELS, Role } from "@/constants/role";
-import prisma from "@/lib/prisma";
+import { ROLE_LABELS, Role } from "@/constants/role";
+import { getLatestVisibleProducts } from "@/lib/prisma";
 import { auth } from "@/auth";
 
 type AppUser = {
@@ -39,13 +39,7 @@ export default async function HomePage() {
   const roleString: string =
     role && ROLE_LABELS[role as Role] ? ROLE_LABELS[role] : "Not signed in";
 
-  const recommended = await prisma.product.findMany({
-    where: {
-      hidden: false,
-    },
-    take: 4,
-    orderBy: { createdAt: "desc" },
-  });
+  const recommended = await getLatestVisibleProducts(4);
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 grid gap-6">

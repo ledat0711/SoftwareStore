@@ -1,5 +1,5 @@
 import Link from "next/link";
-import prisma from "@/lib/prisma";
+import { getFilteredVisibleProducts } from "@/lib/prisma";
 import { CATEGORY_BASE, PLATFORM_BASE } from "@/constants/product";
 
 function currency(n: number) {
@@ -23,14 +23,7 @@ export default async function ProductsPage({
   const categoryFilter = toArray(params.category);
   const platformFilter = toArray(params.platform);
 
-  const products = await prisma.product.findMany({
-    where: {
-      hidden: false,
-      category: categoryFilter.length ? { in: categoryFilter } : undefined,
-      platform: platformFilter.length ? { in: platformFilter } : undefined,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const products = await getFilteredVisibleProducts(categoryFilter, platformFilter);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">

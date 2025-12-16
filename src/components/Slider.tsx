@@ -1,23 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function Slider({ items }: { items: SlideItem[] }) {
-  const [i, setI] = useState(0);
+  const [index, setIndex] = useState(0);
 
-  useEffect(() => {
-    const t: NodeJS.Timeout = setInterval(() => setI((p) => (p + 1) % items.length), 4000);
-    return () => clearInterval(t);
-  }, [items.length]);
-
-  const prev: () => void = () => setI((p) => (p - 1 + items.length) % items.length);
-  const next: () => void = () => setI((p) => (p + 1) % items.length);
+  const prev: () => void = () => setIndex((p) => (p - 1 + items.length) % items.length);
+  const next: () => void = () => setIndex((p) => (p + 1) % items.length);
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-gray-200">
       <div
         className="flex transition-transform duration-700 ease-in-out"
-        style={{ transform: `translateX(-${i * 100}%)` }}
+        style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {items.map((s) => (
           <div
@@ -56,10 +51,10 @@ export default function Slider({ items }: { items: SlideItem[] }) {
         {items.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setI(idx)}
+            onClick={() => setIndex(idx)}
             aria-label={`Go to slide ${idx + 1}`}
             className={`h-2 w-2 rounded-full border border-slate-900 transition ${
-              idx === i ? "bg-slate-900" : "bg-transparent"
+              idx === index ? "bg-slate-900" : "bg-transparent"
             }`}
           />
         ))}
