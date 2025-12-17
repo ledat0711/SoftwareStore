@@ -6,9 +6,10 @@ import {
   updateProductAction,
 } from "@/lib/prisma";
 import AdminProductsClient from "./AdminProductsClient";
+import { Product } from "@/types/product";
 
 export default async function AdminProductsPage() {
-  const products = await getAllProducts();
+  const products: Product[] = await getAllProducts();
 
   return (
     <AdminProductsClient

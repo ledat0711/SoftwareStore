@@ -125,9 +125,9 @@ export type SeedProductPayload = Omit<
 };
 
 export async function upsertProductFromSeed(payload: SeedProductPayload) {
-  const slug = payload.slug || slugify(payload.title);
-  const badge = payload.badge ?? null;
-  const hidden = payload.hidden ?? false;
+  const slug: string = payload.slug || slugify(payload.title);
+  const badge: string | null = payload.badge ?? null;
+  const hidden: boolean = payload.hidden ?? false;
 
   return prisma.product.upsert({
     where: { slug },
@@ -171,7 +171,7 @@ export async function getFilteredVisibleProducts(
 }
 
 export async function searchVisibleProducts(query: string, limit = 12) {
-  const term = query.trim();
+  const term: string = query.trim();
   if (!term) return [];
 
   return prisma.product.findMany({

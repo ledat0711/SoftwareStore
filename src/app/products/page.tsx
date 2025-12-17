@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getFilteredVisibleProducts } from "@/lib/prisma";
 import { CATEGORY_BASE, PLATFORM_BASE } from "@/constants/product";
 import { currency } from "@/lib/helpers";
+import { Product } from "@/types/product";
 
 type SearchParams = {
   category?: string;
@@ -16,11 +17,11 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const params = await searchParams;
-  const categoryFilter = toArray(params.category);
-  const platformFilter = toArray(params.platform);
+  const params: SearchParams = await searchParams;
+  const categoryFilter: string[] = toArray(params.category);
+  const platformFilter: string[] = toArray(params.platform);
 
-  const products = await getFilteredVisibleProducts(categoryFilter, platformFilter);
+  const products: Product[] = await getFilteredVisibleProducts(categoryFilter, platformFilter);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">

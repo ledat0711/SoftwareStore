@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MdEmail, MdLock } from "react-icons/md";
-import { signIn } from "next-auth/react";
+import { signIn, SignInResponse } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -14,10 +14,10 @@ export default function CredentialsLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordRef: React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const storedEmail = sessionStorage?.getItem("registeredEmail");
+    const storedEmail: string | null = sessionStorage?.getItem("registeredEmail");
 
     if (storedEmail) {
       setEmail(storedEmail);
@@ -26,18 +26,17 @@ export default function CredentialsLoginPage() {
   }, []);
 
   useEffect(() => {
-    const storedEmail = sessionStorage?.getItem("registeredEmail");
-
+    const storedEmail: string | null = sessionStorage?.getItem("registeredEmail");
     if (storedEmail && passwordRef.current) {
       passwordRef.current.focus();
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await signIn("credentials", {
+    const res: SignInResponse = await signIn("credentials", {
       redirect: false,
       email,
       password,

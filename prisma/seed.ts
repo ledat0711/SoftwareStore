@@ -11,7 +11,7 @@ import {
 type SeedProduct = Omit<Product, "category" | "platform">;
 
 /* -------------------------------------------------------
-   1. Tại ra mảng danh sách sản phẩm mẫu
+   1. Tạo ra mảng danh sách sản phẩm mẫu
 ------------------------------------------------------- */
 const allProducts: SeedProduct[] = [
   // ======= SOFTWARE STORE PRODUCTS ======= //

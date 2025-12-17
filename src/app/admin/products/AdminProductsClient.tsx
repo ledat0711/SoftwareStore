@@ -51,9 +51,9 @@ export default function AdminProductsClient({
 
   const filtered: Product[] = useMemo(() => {
     return products.filter((p) => {
-      const categoryOk =
+      const categoryOk: boolean =
         filters.category.length > 0 ? filters.category.includes(p.category ?? "") : true;
-      const platformOk =
+      const platformOk: boolean =
         filters.platform.length > 0 ? filters.platform.includes(p.platform ?? "") : true;
       return categoryOk && platformOk;
     });
@@ -83,7 +83,7 @@ export default function AdminProductsClient({
         ...editDraft,
         slug: editDraft.slug || slugify(editDraft.title),
       };
-      const updated = await onUpdate(editingId, payload);
+      const updated: Product = await onUpdate(editingId, payload);
       setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       cancelEdit();
     } catch (e) {
@@ -108,10 +108,10 @@ export default function AdminProductsClient({
   }
 
   async function toggleHidden(p: Product) {
-    const nextHidden = !p.hidden;
+    const nextHidden: boolean = !p.hidden;
     setHidingId(p.id);
     try {
-      const updated = await onToggleHidden(p.id, nextHidden);
+      const updated: Product = await onToggleHidden(p.id, nextHidden);
       setProducts((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
       if (editingId === p.id && nextHidden) cancelEdit();
     } catch (e) {
@@ -128,7 +128,7 @@ export default function AdminProductsClient({
         ...newProd,
         slug: newProd.slug || slugify(newProd.title),
       };
-      const created = await onCreate(payload);
+      const created: Product = await onCreate(payload);
       setProducts((prev) => [new Product(created), ...prev]);
       setNewProd(new Product({ category: DEFAULT_CATEGORY, platform: DEFAULT_PLATFORM }));
     } catch (err) {
@@ -315,7 +315,7 @@ export default function AdminProductsClient({
 
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {filtered.map((p) => {
-              const isEditing = editingId === p.id;
+              const isEditing: boolean = editingId === p.id;
               return (
                 <article
                   key={p.id}
