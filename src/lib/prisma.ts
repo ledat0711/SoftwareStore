@@ -1,4 +1,4 @@
-// ******* CLOUD *******
+﻿// ******* CLOUD *******
 // import { PrismaClient } from '@prisma/client/edge'
 // import { withAccelerate } from '@prisma/extension-accelerate'
 
@@ -111,35 +111,40 @@ export async function disconnectPrisma() {
   await prisma.$disconnect();
 }
 
-export type SeedProductPayload = {
-  id: string;
-  title: string;
-  description: string | null;
-  image: string | null;
-  price: number;
-  rating: number | null;
-  tag: string | null;
-  badge?: string | null;
-  category: string | null;
-  platform: string | null;
-  slug?: string;
+// Seed payload is based on the Product model with optional slug/hidden/badge/category/platform for seeding convenience.
+
+export type SeedProductPayload = Omit<
+  Product,
+  "slug" | "hidden" | "badge" | "category" | "platform"
+> & {
+  slug?: Product["slug"] | null;
+  hidden?: Product["hidden"];
+  badge?: Product["badge"];
+  category?: Product["category"];
+  platform?: Product["platform"];
 };
 
 export async function upsertProductFromSeed(payload: SeedProductPayload) {
   const slug = payload.slug || slugify(payload.title);
+  const badge = payload.badge ?? null;
+  const hidden = payload.hidden ?? false;
 
   return prisma.product.upsert({
     where: { slug },
     create: {
       ...payload,
       slug,
-      badge: payload.badge ?? null,
+      badge,
+      hidden,
+      category: payload.category ?? null,
+      platform: payload.platform ?? null,
     },
     update: {},
   });
 }
 
 export async function getAllProducts() {
+  "use server";
   return prisma.product.findMany({ orderBy: { createdAt: "desc" } });
 }
 
@@ -161,6 +166,25 @@ export async function getFilteredVisibleProducts(
       category: categoryFilter.length ? { in: categoryFilter } : undefined,
       platform: platformFilter.length ? { in: platformFilter } : undefined,
     },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function searchVisibleProducts(query: string, limit = 12) {
+  const term = query.trim();
+  if (!term) return [];
+
+  return prisma.product.findMany({
+    where: {
+      hidden: false,
+      OR: [
+        { title: { contains: term, mode: "insensitive" } },
+        { description: { contains: term, mode: "insensitive" } },
+        { category: { contains: term, mode: "insensitive" } },
+        { platform: { contains: term, mode: "insensitive" } },
+      ],
+    },
+    take: limit,
     orderBy: { createdAt: "desc" },
   });
 }

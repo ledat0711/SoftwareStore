@@ -11,3 +11,7 @@ export function slugify(str: string) {
 export function toggle<T extends string>(arr: T[], val: T) {
   return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 }
+
+export function currency(n: number) {
+  return `$${n}`;
+}

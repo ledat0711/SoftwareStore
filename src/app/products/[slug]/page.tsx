@@ -3,16 +3,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
 import { Product } from "@/types/product";
-
-type ProductParams = { slug: string };
+import { currency } from "@/lib/helpers";
 
 // Load metadata SEO from DB
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<ProductParams>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug }: ProductParams = await params;
+  const { slug }: { slug: string } = await params;
   const product: Product | null  = await getProductBySlug(slug);
 
   if (!product) {
@@ -30,10 +29,6 @@ export async function generateMetadata({
   };
 }
 
-function currency(n: number) {
-  return `$${n}`;
-}
-
 function shorten(text: string | null | undefined, max = 90) {
   if (!text) return "Mô tả đang cập nhật";
   return text.length > max ? `${text.slice(0, max)}...` : text;
@@ -42,9 +37,9 @@ function shorten(text: string | null | undefined, max = 90) {
 export default async function ProductDetail({
   params,
 }: {
-  params: Promise<ProductParams>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug }: ProductParams = await params;
+  const { slug }: { slug: string } = await params;
   const p: Product | null = await getProductBySlug(slug);
 
   if (!p) {

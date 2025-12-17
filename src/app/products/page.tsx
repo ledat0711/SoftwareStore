@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { getFilteredVisibleProducts } from "@/lib/prisma";
 import { CATEGORY_BASE, PLATFORM_BASE } from "@/constants/product";
-
-function currency(n: number) {
-  return `$${n}`;
-}
+import { currency } from "@/lib/helpers";
 
 type SearchParams = {
   category?: string;
