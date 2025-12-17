@@ -135,7 +135,7 @@ export default async function HomePage({
           </div>
           {hasSearch && (
             <span className="text-sm font-semibold text-gray-700">
-              {searchResults.length} kết quả cho {query}
+              {searchResults.length} kết quả cho &quot;{query}&quot;
             </span>
           )}
         </div>
