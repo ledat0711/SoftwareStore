@@ -1,10 +1,11 @@
 // During the early development stage, seed data is useful for quickly generating test records.
 // Once all CRUD features are fully implemented, seeding should no longer be used, as it may
 // introduce inconsistencies or break relational links within the dataset.
-import { PrismaClient } from "@prisma/client";
-import { slugify } from '../src/lib/helpers';
-
-const prisma = new PrismaClient();
+import {
+  deleteAllProducts,
+  disconnectPrisma,
+  upsertProductFromSeed,
+} from "../src/lib/prisma";
 
 /* -------------------------------------------------------
    1. Tại ra mảng danh sách sản phẩm mẫu
@@ -117,29 +118,16 @@ const allProducts = [
 ------------------------------------------------------- */
 async function main() {
   console.log("🧹 Xóa dữ liệu cũ...");
-  await prisma.$executeRaw`DELETE FROM "Product"`;
+  await deleteAllProducts();
 
   console.log("🚀 Seed sản phẩm Software Store...");
 
   for (const p of allProducts) {
-    const slug = slugify(p.title);
-
-    await prisma.product.upsert({
-      where: { slug },
-      create: {
-        id: p.id,
-        slug,
-        title: p.title,
-        description: p.description,
-        image: p.image,
-        price: p.price,
-        rating: p.rating,
-        tag: p.tag,
-        badge: p.badge ?? null,
-        category: "Software",
-        platform: "All",
-      },
-      update: {},
+    await upsertProductFromSeed({
+      ...p,
+      badge: p.badge ?? null,
+      category: "Software",
+      platform: "All",
     });
   }
 
@@ -151,4 +139,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnectPrisma());

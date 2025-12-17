@@ -3,7 +3,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+import { getUserByEmail } from "@/lib/prisma";
 
 const ADMIN_EMAILS = new Set(
   [process.env.DEFAULT_ADMINS]
@@ -26,9 +26,7 @@ const authConfig = {
           throw new Error("Missing username or password");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: String(credentials.email) },
-        });
+        const user = await getUserByEmail(String(credentials.email));
 
         if (!user || !user.password) {
           throw new Error("User not found or missing password");

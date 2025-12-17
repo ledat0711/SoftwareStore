@@ -37,6 +37,26 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;
 
+// -------- User helpers --------
+export async function getUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: { email: String(email) },
+  });
+}
+
+export type CreateUserPayload = {
+  name: string | null;
+  email: string;
+  password: string | null;
+  image?: string | null;
+};
+
+export async function createUser(payload: CreateUserPayload) {
+  return prisma.user.create({
+    data: payload,
+  });
+}
+
 // -------- Product helpers --------
 export async function getProductBySlug(slug: string) {
   return prisma.product.findUnique({
@@ -81,6 +101,42 @@ export async function deleteProductAction(id: string) {
 export async function toggleHiddenAction(id: string, hidden: boolean) {
   "use server";
   return prisma.product.update({ where: { id }, data: { hidden } });
+}
+
+export async function deleteAllProducts() {
+  await prisma.$executeRaw`DELETE FROM "Product"`;
+}
+
+export async function disconnectPrisma() {
+  await prisma.$disconnect();
+}
+
+export type SeedProductPayload = {
+  id: string;
+  title: string;
+  description: string | null;
+  image: string | null;
+  price: number;
+  rating: number | null;
+  tag: string | null;
+  badge?: string | null;
+  category: string | null;
+  platform: string | null;
+  slug?: string;
+};
+
+export async function upsertProductFromSeed(payload: SeedProductPayload) {
+  const slug = payload.slug || slugify(payload.title);
+
+  return prisma.product.upsert({
+    where: { slug },
+    create: {
+      ...payload,
+      slug,
+      badge: payload.badge ?? null,
+    },
+    update: {},
+  });
 }
 
 export async function getAllProducts() {

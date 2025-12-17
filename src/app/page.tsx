@@ -1,4 +1,4 @@
-import Slider from "@/components/Slider";
+﻿import Slider from "@/components/Slider";
 import Link from "next/link";
 import { ROLE_LABELS, Role } from "@/constants/role";
 import { getLatestVisibleProducts } from "@/lib/prisma";
@@ -17,13 +17,15 @@ const slides: SlideItem[] = [
     id: "s1",
     title: "Welcome to Software Store",
     titleClass: "text-white",
-    bg: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5HU26ZSS3Tgted_TMty0wzqMQYpm03yD7eAPRtQBYO5dMlD18uZxNDuKXvpqAKGFYXbR3E2AUl4SjJkn2wMOGpMzW_eL9bead7iYs2rnbclM65KqMluL9PQUxrK9Ly91WqD2mOR04qP8KhlAr9sCYHV0ITD7w0VDwUVc0OS0dlZQzX_mQjmIhqTnlbcK5QYa0bZ0JBvUwPmYg3m28w--&h=576') center/cover no-repeat",
+    bg: "linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('https://images-eds-ssl.xboxlive.com/image?url=7flt5HU26ZSS3Tgted_TMty0wzqMQYpm03yD7eAPRtQBYO5dMlD18uZxNDuKXvpqAKGFYXbR3E2AUl4SjJkn2wMOGpMzW_eL9bead7iYs2rnbclM65KqMluL9PQUxrK9Ly91WqD2mOR04qP8KhlAr9sCYHV0ITD7w0VDwUVc0OS0dlZQzX_mQjmIhqTnlbcK5QYa0bZ0JBvUwPmYg3m28w--&h=576') center/cover no-repeat",
   },
   {
     id: "s2",
     title: "Performance Optimization",
-    subtitle: "Tối ưu hiệu suất",
-    bg: "linear-gradient(135deg,#fde68a,#fecaca)",
+    titleClass: "text-slate-900 drop-shadow-sm",
+    subtitle: "Tối ưu hiệu suất nhanh và mượt",
+    subtitleClass: "text-slate-800/80",
+    bg: "linear-gradient(120deg,#fff7ed 0%,#ffe4e6 35%,#fecdd3 70%,#ffe7c2 100%)",
   },
   {
     id: "s3",
@@ -132,3 +134,4 @@ export default async function HomePage() {
     </main>
   );
 }
+
