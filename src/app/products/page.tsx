@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getFilteredVisibleProducts } from "@/lib/prisma";
-import { CATEGORY_BASE, PLATFORM_BASE } from "@/constants/product";
 import { currency } from "@/lib/helpers";
 import { Product } from "@/types/product";
+import ProductFilters from "./ProductFilters";
 
 type SearchParams = {
   category?: string;
@@ -49,62 +49,7 @@ export default async function ProductsPage({
 
         <section className="grid gap-4 lg:grid-cols-[220px_1fr]">
           <aside className="h-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-            <form className="grid gap-4">
-              <div className="grid gap-2">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Categories
-                </h3>
-                <div className="grid gap-1.5">
-                  {CATEGORY_BASE.map((c) => (
-                    <label
-                      key={c}
-                      className="flex items-center gap-2 text-sm text-slate-800"
-                    >
-                      <input
-                        type="checkbox"
-                        name="category"
-                        value={c}
-                        defaultChecked={categoryFilter.includes(c)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>{c}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-2 border-t border-gray-200 pt-3">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  Available on
-                </h3>
-                <div className="grid gap-1.5">
-                  {PLATFORM_BASE.map((p) => (
-                    <label
-                      key={p}
-                      className="flex items-center gap-2 text-sm text-slate-800"
-                    >
-                      <input
-                        type="checkbox"
-                        name="platform"
-                        value={p}
-                        defaultChecked={platformFilter.includes(p)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>{p}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                >
-                  Áp dụng lọc
-                </button>
-              </div>
-            </form>
+            <ProductFilters categoryFilter={categoryFilter} platformFilter={platformFilter} />
           </aside>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
