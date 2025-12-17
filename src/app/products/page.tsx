@@ -103,12 +103,6 @@ export default async function ProductsPage({
                 >
                   Áp dụng lọc
                 </button>
-                <Link
-                  href="/products"
-                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
-                >
-                  Xoá
-                </Link>
               </div>
             </form>
           </aside>
