@@ -170,6 +170,38 @@ export async function getFilteredVisibleProducts(
   });
 }
 
+const DEFAULT_SEARCH_LIMIT = 12;
+const MAX_SEARCH_LIMIT = 50;
+
+function normalizeSearchLimit(
+  rawLimit: number | string | null | undefined,
+  fallback = DEFAULT_SEARCH_LIMIT
+) {
+  const parsedLimit =
+    typeof rawLimit === "number" ? rawLimit : rawLimit ? Number(rawLimit) : fallback;
+  if (!Number.isFinite(parsedLimit)) return fallback;
+  return Math.min(Math.max(parsedLimit, 1), MAX_SEARCH_LIMIT);
+}
+
+export async function searchVisibleProductsWithLimit(
+  query: string,
+  rawLimit?: number | string | null
+) {
+  const term: string = query.trim();
+  if (!term) return [];
+
+  const limit = normalizeSearchLimit(rawLimit);
+  return searchVisibleProducts(term, limit);
+}
+
+export async function searchVisibleProductsAction(
+  query: string,
+  limit = DEFAULT_SEARCH_LIMIT
+) {
+  "use server";
+  return searchVisibleProductsWithLimit(query, limit);
+}
+
 export async function searchVisibleProducts(query: string, limit = 12) {
   const term: string = query.trim();
   if (!term) return [];
