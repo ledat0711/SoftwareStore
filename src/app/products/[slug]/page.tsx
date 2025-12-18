@@ -116,7 +116,15 @@ export default async function ProductDetail({
             </dl>
 
             <div className="flex flex-wrap gap-3">
-              <AddToCartButton id={p.id} />
+              <AddToCartButton
+                item={{
+                  id: p.id,
+                  slug: p.slug,
+                  title: p.title,
+                  price: p.price,
+                  image: p.image ?? null,
+                }}
+              />
               <Link
                 href="/products"
                 className="rounded-lg border border-gray-200 px-4 py-2.5 text-slate-700 hover:bg-gray-50"
