@@ -1,58 +1,33 @@
-"use client"
-import { useEffect, useState } from "react"
+"use client";
 
-type SlideItem = {
-  id: string
-  title: string
-  subtitle?: string
-  bg?: string
-  titleClass?: string
-  subtitleClass?: string
-}
+import { useState } from "react";
 
-type Props = {
-  items: SlideItem[]
-}
+export default function Slider({ items }: { items: SlideItem[] }) {
+  const [index, setIndex] = useState(0);
 
-export default function Slider({ items }: Props) {
-  const [i, setI] = useState(0)
-
-  useEffect(() => {
-    const t = setInterval(() => setI((p) => (p + 1) % items.length), 4000)
-    return () => clearInterval(t)
-  }, [items.length])
-
-  const prev = () => setI((p) => (p - 1 + items.length) % items.length)
-  const next = () => setI((p) => (p + 1) % items.length)
+  const prev: () => void = () => setIndex((p) => (p - 1 + items.length) % items.length);
+  const next: () => void = () => setIndex((p) => (p + 1) % items.length);
 
   return (
-    <div style={{ position: "relative", overflow: "hidden", borderRadius: 12, border: "1px solid #e5e7eb" }}>
+    <div className="relative overflow-hidden rounded-xl border border-gray-200">
       <div
-        style={{
-          display: "flex",
-          transition: "transform 0.8s ease",
-          transform: `translateX(-${i * 100}%)`,
-        }}
+        className="flex transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${index * 100}%)` }}
       >
         {items.map((s) => (
           <div
             key={s.id}
-            style={{
-              minWidth: "100%",
-              height: 320,
-              background: s.bg,
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-              gap: 8,
-              flexShrink: 0,
-              textShadow: "0 2px 8px rgba(0,0,0,0.8)",
-            }}
+            className="flex min-w-full flex-col items-center justify-center gap-3 px-6 py-12 text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] md:h-[320px]"
+            style={s.bg ? { background: s.bg } : undefined}
           >
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{s.title}</div>
-            {s.subtitle && <div style={{ fontSize: 17, fontWeight: 500 }}>{s.subtitle}</div>}
+            <div className={`text-3xl font-bold ${s.titleClass ?? ""}`}>
+              {s.title}
+            </div>
+            {s.subtitle ? (
+              <div className={`text-lg font-semibold ${s.subtitleClass ?? ""}`}>
+                {s.subtitle}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
@@ -60,55 +35,30 @@ export default function Slider({ items }: Props) {
       <button
         aria-label="Prev"
         onClick={prev}
-        style={{
-          position: "absolute",
-          left: 8,
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "rgba(255,255,255,.9)",
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          padding: "6px 10px",
-          cursor: "pointer",
-        }}
+        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg border border-gray-200 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
-        ‹
+        ←
       </button>
       <button
         aria-label="Next"
         onClick={next}
-        style={{
-          position: "absolute",
-          right: 8,
-          top: "50%",
-          transform: "translateY(-50%)",
-          background: "rgba(255,255,255,.9)",
-          border: "1px solid #e5e7eb",
-          borderRadius: 8,
-          padding: "6px 10px",
-          cursor: "pointer",
-        }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-gray-200 bg-white/90 px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
       >
-        ›
+        →
       </button>
 
-      <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", gap: 6, justifyContent: "center" }}>
+      <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-2">
         {items.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setI(idx)}
+            onClick={() => setIndex(idx)}
             aria-label={`Go to slide ${idx + 1}`}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              border: "1px solid #111827",
-              background: idx === i ? "#111827" : "transparent",
-              cursor: "pointer",
-            }}
+            className={`h-2 w-2 rounded-full border border-slate-900 transition ${
+              idx === index ? "bg-slate-900" : "bg-transparent"
+            }`}
           />
         ))}
       </div>
     </div>
-  )
+  );
 }

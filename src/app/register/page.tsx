@@ -6,9 +6,10 @@ import { FaXTwitter, FaDiscord } from "react-icons/fa6"
 import { FaMicrosoft } from "react-icons/fa"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
 
 export default function RegisterPage() {
-    const router = useRouter()
+    const router: AppRouterInstance = useRouter()
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
@@ -18,21 +19,21 @@ export default function RegisterPage() {
         setError("")
         setLoading(true)
 
-        const formData = new FormData(e.currentTarget)
-        const firstName = formData.get("firstName") as string
-        const lastName = formData.get("lastName") as string
-        const email = formData.get("email") as string
-        const password = formData.get("password") as string
-        const res = await fetch("/api/register", {
+        const formData: FormData = new FormData(e.currentTarget)
+        const firstName: string = formData.get("firstName") as string
+        const lastName: string = formData.get("lastName") as string
+        const email: string = formData.get("email") as string
+        const password: string = formData.get("password") as string
+        const res: Response = await fetch("/api/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ firstName, lastName, email, password }),
         })
 
         setLoading(false)
-
+        
         if (!res.ok) {
-            const data = await res.json()
+            const data: { error?: string } = await res.json()
             setError(data.error || "Registration failed")
             return
         }

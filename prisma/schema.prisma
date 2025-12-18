@@ -1,17 +1,42 @@
+// Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+    directUrl = env("DIRECT_DATABASE_URL")
 }
- 
+
 generator client {
   provider = "prisma-client-js"
-  engineType = "edge"
 }
- 
-enum Role {
-  USER
-  ADMIN
+
+enum Department {
+  Apps
+  Games
+}
+
+enum Platform {
+  PC
+  Mobile
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique   // dùng cho URL :slack-premium: http://localhost:3000/products/slack-premium
+  title       String             // tên hiển thị
+  description String?
+  image       String?
+  price       Float
+  rating      Float?            
+  tag         String?           // (Năng suất/Dev Tools/Thiết kế...) (fix: category => tag)
+  badge       String?           //
+
+  category    String?           // (Software/Apps/Games...) (fix: department => category)
+  platform    String?           // PC/Mobile/All...
+
+  hidden      Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
@@ -23,13 +48,30 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
-  role Role @default(USER)
+  roles         RoleUser[]   // 1-n với bảng trung gian
   // Optional for WebAuthn support
   Authenticator Authenticator[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 
+model Role {
+  id    String       @id @default(cuid())
+  name  String       @unique
+  
+  users RoleUser[]   // 1-n với bảng trung gian
+}
+
+// bảng trung gian RoleUser
+model RoleUser {
+  userId String
+  roleId String
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId]) // composite primary key
 }
 
 model Account {
