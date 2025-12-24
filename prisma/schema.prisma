@@ -1,10 +1,10 @@
 // Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
     provider = "postgresql"
-    // ****dev****
+    // ****local****
     url = "postgresql://postgres:postgres@localhost:5432/postgres"
 
-    // ****production****
+    // ****cloud****
     // url = env("DATABASE_URL")
     // directUrl = env("DIRECT_DATABASE_URL")
 }
@@ -136,7 +136,7 @@ model Authenticator {
   @@id([userId, credentialID])
 }
 
-// mối quan hệ giữa cart và product là mối quan hệ n-n
+// bảng cart và product có mối quan hệ n-n
 // nên cần bảng trung gian CartItem
 model Cart {
   id        String     @id @default(cuid())
