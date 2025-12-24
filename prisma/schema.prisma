@@ -1,8 +1,12 @@
 // Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
 datasource db {
     provider = "postgresql"
-    url = env("DATABASE_URL")
-    directUrl = env("DIRECT_DATABASE_URL")
+    // ****dev****
+    url = "postgresql://postgres:postgres@localhost:5432/postgres"
+
+    // ****production****
+    // url = env("DATABASE_URL")
+    // directUrl = env("DIRECT_DATABASE_URL")
 }
 
 generator client {
@@ -37,8 +41,10 @@ model Product {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  cartItems   CartItem[]
 }
 
+// 1 user có 1 cart (giỏ hàng)
 model User {
   id            String          @id @default(cuid())
   name          String?
@@ -48,6 +54,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  cart          Cart?
   roles         RoleUser[]   // 1-n với bảng trung gian
   // Optional for WebAuthn support
   Authenticator Authenticator[]
@@ -127,5 +134,29 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
  
   @@id([userId, credentialID])
+}
+
+// mối quan hệ giữa cart và product là mối quan hệ n-n
+// nên cần bảng trung gian CartItem
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
 }
 

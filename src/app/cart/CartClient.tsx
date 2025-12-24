@@ -5,7 +5,17 @@ import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
 
 export default function CartClient() {
-  const { items, updateQuantity, removeItem, clear, subtotal, totalItems } = useCart();
+  const { items, updateQuantity, removeItem, clear, subtotal, totalItems, ready } =
+    useCart();
+
+  if (!ready) {
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-10">
+        <h1 className="text-3xl font-bold text-slate-900">Your cart</h1>
+        <p className="mt-6 text-sm text-gray-600">Loading cart...</p>
+      </main>
+    );
+  }
 
   if (items.length === 0) {
     return (

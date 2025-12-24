@@ -57,12 +57,12 @@ export default function AddToCartButton({
 
   useEffect(() => () => clearTimer(), []);
 
-  function handleClick() {
+  async function handleClick() {
     if (isBusy) return;
     clearTimer();
     setStatus("adding");
     try {
-      addItem(item, quantity);
+      await addItem(item, quantity);
       setStatus("added");
       toast.success(`Added to cart: ${item.title}`);
     } catch {

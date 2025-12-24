@@ -68,11 +68,16 @@ const authConfig = {
       if (email) {
         token.role = ADMIN_EMAILS.has(email) ? "ADMIN" : "USER";
       }
+      if (user?.id) {
+        token.sub = user.id;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (session.user)
+      if (session.user) {
         session.user.role = (token.role as "ADMIN" | "USER") ?? "USER";
+        if (token.sub) session.user.id = token.sub;
+      }
       return session;
     },
 
