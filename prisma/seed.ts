@@ -2,7 +2,7 @@
 // Once all CRUD features are fully implemented, seeding should no longer be used, as it may
 // introduce inconsistencies or break relational links within the dataset.
 import type { Product } from "@/types/product";
-import {
+import prisma, {
   deleteAllProducts,
   disconnectPrisma,
   upsertProductFromSeed,
@@ -165,8 +165,12 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
     console.error(e);
+    await prisma.$disconnect();
     process.exit(1);
   })
   .finally(() => disconnectPrisma());
