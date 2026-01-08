@@ -4,13 +4,19 @@ import { currency } from "@/lib/helpers";
 import { Product } from "@/types/product";
 import ProductFilters from "./ProductFilters";
 
+// url có thể là
+// /products
+// /products?category=Office
+// /products?platform=Windows
+// /products?category=Office&platform=Windows
+
 type SearchParams = {
   category?: string;
   platform?: string;
 };
 
-const toArray = (v: string | string[] | undefined) =>
-  Array.isArray(v) ? v : v ? [v] : [];
+// Đảm bảo kết quả LUÔN là string[]
+const toArray = (v: string | string[] | undefined) => Array.isArray(v) ? v : v ? [v] : [];
 
 export default async function ProductsPage({
   searchParams,
@@ -21,7 +27,10 @@ export default async function ProductsPage({
   const categoryFilter: string[] = toArray(params.category);
   const platformFilter: string[] = toArray(params.platform);
 
-  const products: Product[] = await getFilteredVisibleProducts(categoryFilter, platformFilter);
+  const products: Product[] = await getFilteredVisibleProducts(
+    categoryFilter,
+    platformFilter
+  );
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
@@ -49,7 +58,10 @@ export default async function ProductsPage({
 
         <section className="grid gap-4 lg:grid-cols-[220px_1fr]">
           <aside className="h-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
-            <ProductFilters categoryFilter={categoryFilter} platformFilter={platformFilter} />
+            <ProductFilters
+              categoryFilter={categoryFilter}
+              platformFilter={platformFilter}
+            />
           </aside>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">

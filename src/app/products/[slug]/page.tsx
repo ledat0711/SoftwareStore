@@ -5,14 +5,16 @@ import AddToCartButton from "./AddToCartButton";
 import { Product } from "@/types/product";
 import { currency } from "@/lib/helpers";
 
-// Load metadata SEO from DB
+// Server function đặc biệt của Next.js
+// Hiển thị ở Thẻ Meta trong thẻ Header của trang
+// /products/windows-11-pro
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug }: { slug: string } = await params;
-  const product: Product | null  = await getProductBySlug(slug);
+  const product: Product | null = await getProductBySlug(slug);
 
   if (!product) {
     return { title: "Không tìm thấy sản phẩm" };
@@ -29,7 +31,7 @@ export async function generateMetadata({
   };
 }
 
-function shorten(text: string | null | undefined, max = 90) {
+function shorten(text: string | null | undefined, max: number = 90) {
   if (!text) return "Mô tả đang cập nhật";
   return text.length > max ? `${text.slice(0, max)}...` : text;
 }
@@ -40,9 +42,9 @@ export default async function ProductDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug }: { slug: string } = await params;
-  const p: Product | null = await getProductBySlug(slug);
+  const mainProduct: Product | null = await getProductBySlug(slug);
 
-  if (!p) {
+  if (!mainProduct) {
     return (
       <main className="mx-auto mt-10 max-w-5xl p-6">
         <h1>Không tìm thấy sản phẩm</h1>
@@ -51,7 +53,10 @@ export default async function ProductDetail({
     );
   }
 
-  const related: Product[] = await getRelatedProducts(p.id, p.category);
+  const relatedProduct: Product[] = await getRelatedProducts(
+    mainProduct.id,
+    mainProduct.category
+  );
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white ">
@@ -65,15 +70,15 @@ export default async function ProductDetail({
           <Link href="/products" className="text-blue-600 hover:underline">
             Sản phẩm
           </Link>{" "}
-          / <span className="text-slate-900">{p.title}</span>
+          / <span className="text-slate-900">{mainProduct.title}</span>
         </nav>
 
         {/* Hero */}
         <section className="w-full mx-auto max-w-[1400px] px-6 grid grid-cols-1 gap-6 rounded-2xl bg-white p-6 shadow-lg ring-1 ring-gray-100 lg:grid-cols-[minmax(340px,1fr)_minmax(340px,1fr)]">
           <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4">
             <img
-              src={p.image ?? ""}
-              alt={p.title}
+              src={mainProduct.image ?? ""}
+              alt={mainProduct.title}
               className="block h-80 w-full rounded-xl bg-white object-contain shadow-sm"
             />
           </div>
@@ -82,31 +87,32 @@ export default async function ProductDetail({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
                 <h1 className="text-3xl font-extrabold text-slate-900">
-                  {p.title}
+                  {mainProduct.title}
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-slate-500">
               <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">
-                <span className="text-lg">★</span> {p.rating ?? 4.8} / 5
+                <span className="text-lg">★</span> {mainProduct.rating ?? 4.8} /
+                5
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-3xl font-black text-slate-900">
-                {currency(p.price)}
+                {currency(mainProduct.price)}
               </span>
             </div>
 
             <p className="leading-relaxed text-gray-700">
-              {p.description ?? "Mo ta dang cap nhat"}
+              {mainProduct.description ?? "Mo ta dang cap nhat"}
             </p>
 
             <dl className="grid grid-cols-1 gap-3 rounded-xl border border-gray-100 bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2 max-w-[300px]">
               <div className="flex items-start gap-2">
                 <dt className="font-semibold text-slate-900">Category</dt>
-                <dd>{p.category ?? "Khac"}</dd>
+                <dd>{mainProduct.category ?? "Khac"}</dd>
               </div>
               <div className="flex items-start gap-2"></div>
               <div className="flex items-start gap-2">
@@ -118,11 +124,11 @@ export default async function ProductDetail({
             <div className="flex flex-wrap gap-3">
               <AddToCartButton
                 item={{
-                  id: p.id,
-                  slug: p.slug,
-                  title: p.title,
-                  price: p.price,
-                  image: p.image ?? null,
+                  id: mainProduct.id,
+                  slug: mainProduct.slug,
+                  title: mainProduct.title,
+                  price: mainProduct.price,
+                  image: mainProduct.image ?? null,
                 }}
               />
               <Link
@@ -150,7 +156,7 @@ export default async function ProductDetail({
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5">
-            {related.map((r) => (
+            {relatedProduct.map((r) => (
               <div
                 key={r.id}
                 className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"

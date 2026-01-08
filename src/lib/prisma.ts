@@ -12,7 +12,6 @@
 
 // export default prisma
 
-
 // ******* LOCAL *******
 import { Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
@@ -27,7 +26,11 @@ const globalForPrisma: {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma: PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs> =
+export const prisma: PrismaClient<
+  Prisma.PrismaClientOptions,
+  never,
+  DefaultArgs
+> =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: ["query", "info", "warn", "error"],
@@ -80,15 +83,65 @@ export async function getRelatedProducts(
 // -------- Product actions --------
 export type ProductForm = Omit<Product, "id">;
 
+// Tạo sản phẩm mới trong database, nhưng nếu payload có id thì bỏ qua id
 export async function createProductAction(payload: ProductForm) {
   "use server";
-  const data: ProductForm = { ...payload, slug: payload.slug || slugify(payload.title) };
+  const { id: _ignoreId, ...rest } = payload as ProductForm & { id?: string };
+  // Giả sử payload là:
+  // payload = {
+  //   id: "p01",
+  //   title: "Windows 11 Pro",
+  //   price: 120,
+  //   slug: ""
+  // };
+  // Sau khi destructuring:
+  // => Kết quả trong bộ nhớ:
+  // _ignoreId = "p01";
+  // rest = toàn bộ thuộc tính còn lại, sau khi bỏ id
+  // rest = {
+  //   title: "Windows 11 Pro",
+  //   price: 120,
+  //   slug: ""
+  // };
+  const data: Prisma.ProductCreateInput = {
+    ...rest,
+    slug: rest.slug || slugify(rest.title),
+  };
   return prisma.product.create({ data });
 }
 
 export async function updateProductAction(id: string, payload: ProductForm) {
   "use server";
-  const data: ProductForm = { ...payload, slug: payload.slug || slugify(payload.title) };
+  const data: ProductForm = {
+    ...payload,
+    slug: payload.slug || slugify(payload.title),
+  };
+
+  // trong prisma: hàm update cập nhật 1 record duy nhất, và trả về 1 record đã được cập nhật
+  // { where: { id }, data }: là 1 object JS, được truyền vào hàm update
+  // Viết đầy đủ:
+  //
+  // {
+  //   where: {
+  //     id: id
+  //   },
+  //   data: data
+  // }
+
+  // update({
+  // where: {...}, // BẮT BUỘC: xác định record
+  // data: {...}   // BẮT BUỘC: dữ liệu mới
+  // })
+  // Client (form submit)
+  //    ↓
+  // Server Action (updateProductAction)
+  //    ↓
+  // Prisma.product.update({
+  //       where: { id },
+  //       data
+  //    })
+  //    ↓
+  // Database
   return prisma.product.update({ where: { id }, data });
 }
 
@@ -178,7 +231,11 @@ function normalizeSearchLimit(
   fallback = DEFAULT_SEARCH_LIMIT
 ) {
   const parsedLimit =
-    typeof rawLimit === "number" ? rawLimit : rawLimit ? Number(rawLimit) : fallback;
+    typeof rawLimit === "number"
+      ? rawLimit
+      : rawLimit
+      ? Number(rawLimit)
+      : fallback;
   if (!Number.isFinite(parsedLimit)) return fallback;
   return Math.min(Math.max(parsedLimit, 1), MAX_SEARCH_LIMIT);
 }

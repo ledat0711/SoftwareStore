@@ -29,10 +29,31 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 const DEFAULT_DURATION = 3200;
 
+// crypto là một API có sẵn của trình duyệt (Web Crypto API), không phải thư viện tự cài, và không liên quan đến tiền điện tử
+// Trong JavaScript (trình duyệt), crypto là đối tượng toàn cục dùng cho các tác vụ bảo mật & ngẫu nhiên an toàn, ví dụ:
+// Tạo số ngẫu nhiên không đoán được
+// Sinh UUID chuẩn
+// Mã hoá / băm dữ liệu (SHA, AES, …)
+// Nó an toàn hơn Math.random() rất nhiều.
 function createToastId() {
+  // Vì sao phải check: if (typeof crypto !== "undefined" && "randomUUID" in crypto)
+  // Vì:
+  // Một số browser cũ
+  // Hoặc môi trường đặc biệt (SSR, test, iframe cũ…)
+  // Có thể không có crypto hoặc chưa hỗ trợ randomUUID
+  // nên phải có phương án dự phòng tránh lỗi
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    // crypto.randomUUID():
+    // Trả về một UUID v4 chuẩn
+    // Gần như không bao giờ trùng
+    // Được thiết kế cho:
+    // ID
+    // Key
+    // Token
+    // Toast, Modal, List item…
     return crypto.randomUUID();
   }
+  
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -50,7 +71,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const push = useCallback(
-    (message: string, tone: ToastTone = "info", durationMs = DEFAULT_DURATION) => {
+    (
+      message: string,
+      tone: ToastTone = "info",
+      durationMs = DEFAULT_DURATION
+    ) => {
       const id = createToastId();
       const toast: Toast = { id, message, tone, durationMs };
       setToasts((prev) => [...prev, toast]);
@@ -78,7 +103,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         push(message, "success", durationMs),
       error: (message: string, durationMs?: number) =>
         push(message, "error", durationMs),
-      info: (message: string, durationMs?: number) => push(message, "info", durationMs),
+      info: (message: string, durationMs?: number) =>
+        push(message, "info", durationMs),
     }),
     [push]
   );

@@ -9,9 +9,20 @@ type CartResponse = {
 function createRequestError(status: number) {
   const error = new Error("Cart request failed");
   (error as Error & { status?: number }).status = status;
+
+  // Nếu console.log(error)
+  // Console hiển thị:
+  // Error: Cart request failed
+  //     at createRequestError (...)
+  //     Mở rộng object sẽ thấy thêm:
+  //     status: 401
+
   return error;
 }
 
+// hàm async trong JavaScript / TypeScript LUÔN trả về Promise
+// Quy tắc: của async (rất quan trọng)
+// Hễ có async → return value tự động được bọc trong Promise
 async function parseCartResponse(response: Response): Promise<CartItem[]> {
   if (!response.ok) {
     throw createRequestError(response.status);
@@ -21,7 +32,7 @@ async function parseCartResponse(response: Response): Promise<CartItem[]> {
 }
 
 export async function fetchCartItems(): Promise<CartItem[]> {
-  const response = await fetch(CART_API_PATH, { cache: "no-store" });
+  const response: Response = await fetch(CART_API_PATH, { cache: "no-store" });
   return parseCartResponse(response);
 }
 

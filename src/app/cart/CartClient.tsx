@@ -5,8 +5,15 @@ import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
 
 export default function CartClient() {
-  const { items, updateQuantity, removeItem, clear, subtotal, totalItems, ready } =
-    useCart();
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    clear,
+    subtotal,
+    totalItems,
+    ready,
+  } = useCart();
 
   if (!ready) {
     return (
@@ -74,7 +81,9 @@ export default function CartClient() {
                 >
                   {item.title}
                 </Link>
-                <div className="text-sm text-gray-500">{currency(item.price)}</div>
+                <div className="text-sm text-gray-500">
+                  {currency(item.price)}
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="inline-flex items-center rounded-lg border border-gray-200">
                     <button
@@ -125,11 +134,15 @@ export default function CartClient() {
         </section>
 
         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Order summary</h2>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Order summary
+          </h2>
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
-              <span className="font-semibold text-slate-900">{currency(subtotal)}</span>
+              <span className="font-semibold text-slate-900">
+                {currency(subtotal)}
+              </span>
             </div>
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Taxes</span>

@@ -20,6 +20,7 @@ function clampQuantity(value: unknown) {
 
 function normalizeCartItem(raw: unknown): CartItem | null {
   if (!raw || typeof raw !== "object") return null;
+  // Record tương đương với Dictionary trong C#. 
   const data = raw as Record<string, unknown>;
   const id = String(data.id ?? "").trim();
   const title = String(data.title ?? "").trim();
@@ -56,7 +57,8 @@ export function readCartItems(): CartItem[] {
 }
 
 export function writeCartItems(items: CartItem[]) {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return; // Dòng này đảm bảo: Hàm này chỉ chạy trên browser
+
   try {
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   } catch {
