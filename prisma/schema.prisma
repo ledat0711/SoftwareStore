@@ -42,6 +42,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   cartItems   CartItem[]
+  orderItems  OrderItem[]
 }
 
 // 1 user có 1 cart (giỏ hàng)
@@ -56,9 +57,10 @@ model User {
   sessions      Session[]
   cart          Cart?
   roles         RoleUser[]   // 1-n với bảng trung gian
+  orders        Order[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -158,5 +160,26 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   @@unique([cartId, productId])
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  total     Float
+  status    String      @default("PAID")
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int      @default(1)
+  price     Float
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 

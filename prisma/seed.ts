@@ -13,7 +13,7 @@ type SeedProduct = Omit<Product, "category" | "platform">;
 /* -------------------------------------------------------
    1. Tạo ra mảng danh sách sản phẩm mẫu
 ------------------------------------------------------- */
-const allProducts: SeedProduct[] = [
+const allProducts: Product[] = [
   // ======= SOFTWARE STORE PRODUCTS ======= //
   {
     id: "win11-pro",
@@ -26,6 +26,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.8,
     tag: "HĐH",
     badge: "Hot",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -39,6 +41,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.7,
     tag: "Văn phòng",
     badge: "Best Seller",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -52,6 +56,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.5,
     tag: "Bảo mật",
     badge: "New",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -64,6 +70,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.6,
     tag: "Dev Tools",
     badge: "Featured",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -77,6 +85,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.9,
     tag: "Thiết kế",
     badge: "Featured",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -90,6 +100,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.8,
     tag: "Thiết kế",
     badge: "Popular",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -103,6 +115,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.7,
     tag: "Dev Tools",
     badge: "Featured",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -115,6 +129,8 @@ const allProducts: SeedProduct[] = [
     rating: 4.6,
     tag: "Dev Tools",
     badge: "Featured",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -122,11 +138,14 @@ const allProducts: SeedProduct[] = [
     title: "Notion Plus",
     slug: "notion-plus",
     description: "Workspaces linh hoạt ghi chú & quản lý.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg",
+    image:
+      "https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg",
     price: 75,
     rating: 4.8,
     tag: "Năng suất",
     badge: "Featured",
+    category: "Apps",
+    platform: "PC",
     hidden: false,
   },
   {
@@ -139,6 +158,23 @@ const allProducts: SeedProduct[] = [
     rating: 4.4,
     tag: "Năng suất",
     badge: "Popular",
+    category: "Apps",
+    platform: "PC",
+    hidden: false,
+  },
+  {
+    id: "minecraft",
+    title: "Minecraft",
+    slug: "minecraft",
+    description: "Trò chơi phiêu lưu.",
+    image:
+      "https://store-images.s-microsoft.com/image/apps.808.14492077886571533.be42f4bd-887b-4430-8ed0-622341b4d2b0.c8274c53-105e-478b-9f4b-41b8088210a3?q=90&w=177&h=265",
+    price: 25,
+    rating: 4.8,
+    tag: "Trò chơi",
+    badge: "Popular",
+    category: "Games",
+    platform: "Mobile",
     hidden: false,
   },
 ];
@@ -152,10 +188,10 @@ async function main() {
 
   console.log("🚀 Seed sản phẩm Software Store...");
 
-  for (const p of allProducts) {
+  for (const product of allProducts) {
     await upsertProductFromSeed({
-      ...p,
-      badge: p.badge ?? null,
+      ...product,
+      badge: product.badge ?? null,
       category: "Software",
       platform: "All",
     });

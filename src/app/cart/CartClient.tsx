@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
 
@@ -14,6 +15,12 @@ export default function CartClient() {
     totalItems,
     ready,
   } = useCart();
+  const router = useRouter();
+
+  const goToCheckout = () => {
+    if (items.length === 0) return;
+    router.push("/checkout");
+  };
 
   if (!ready) {
     return (
@@ -154,17 +161,19 @@ export default function CartClient() {
             </div>
           </div>
           <div className="mt-5 grid gap-2">
+            <button
+              type="button"
+              onClick={goToCheckout}
+              disabled={items.length === 0}
+              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Thanh toán
+            </button>
             <Link
               href="/products"
               className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Continue shopping
-            </Link>
-            <Link
-              href="/products"
-              className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              Browse more products
             </Link>
           </div>
         </aside>

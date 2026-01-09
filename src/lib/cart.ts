@@ -12,6 +12,17 @@ export type CartItemInput = Omit<CartItem, "quantity">;
 export const CART_STORAGE_KEY = "software_store_cart";
 const MAX_QUANTITY = 99;
 
+// hàm chuẩn hoá số lượng (quantity)
+// Mục đích của hàm này: Đảm bảo quantity luôn là một số nguyên hợp lệ, Giới hạn quantity trong [1 → MAX_QUANTITY]
+// Dù người dùng có nhập:"5", 5, "abc", null, Infinity, -10, 3.7 => hàm này sẽ trả về số nguyên hợp lệ tương ứng
+// unknown = không tin tưởng kiểu dữ liệu đầu vào
+// Thường dùng cho: Form input, Query params, LocalStorage, API request
+// Logic chính:
+// Number(value) : ép về số
+// !Number.isFinite: giá trị rác → trả về 1
+// Math.floor bỏ phần thập phân
+// Math.max(..., 1): không cho nhỏ hơn 1
+// Math.min(..., MAX_QUANTITY): không cho vượt quá MAX (99)
 function clampQuantity(value: unknown) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return 1;
@@ -20,7 +31,7 @@ function clampQuantity(value: unknown) {
 
 function normalizeCartItem(raw: unknown): CartItem | null {
   if (!raw || typeof raw !== "object") return null;
-  // Record tương đương với Dictionary trong C#. 
+  // Record tương đương với Dictionary trong C#.
   const data = raw as Record<string, unknown>;
   const id = String(data.id ?? "").trim();
   const title = String(data.title ?? "").trim();

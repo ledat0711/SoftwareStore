@@ -121,6 +121,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, [status]);
 
+  // addItem trong CartProvider (điểm quyết định luồng)
+  // Chìa khóa là status từ useSession()
   const addItem = useCallback(
     async (input: CartItemInput, quantity = 1) => {
       // Khi đã đăng nhập
@@ -263,7 +265,7 @@ export function useCart() {
   //         ↓
   //    useContext(CartContext)
   const context = useContext(CartContext);
-  
+
   if (!context) {
     throw new Error("useCart must be used within CartProvider");
   }

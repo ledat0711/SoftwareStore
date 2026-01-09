@@ -68,7 +68,6 @@
 // UI render danh sách mới
 // ***************************************************************************
 
-
 // *********** Luồng xử lý thêm sản phẩm ***********
 // 1. Admin nhập thông tin sản phẩm mới vào form
 // 2. Admin bấm nút Add
@@ -207,7 +206,20 @@ export default function AdminProductsClient({
   }, [products]);
 
   // useMemo(...): chỉ tính toán lại khi filters hoặc products thay đổi
+  // Tạo ra danh sách sản phẩm đã được lọc (filteredProducts).
+  // Lọc theo category và platform mà admin tick checkbox
+  // Phân tích useMemo(() => { ... }, [filters, products])
+  // React chỉ tính lại filteredProducts khi:
+  // filters thay đổi (tick / bỏ tick checkbox)
+  // products thay đổi (thêm / sửa / xoá sản phẩm)
   const filteredProducts: Product[] = useMemo(() => {
+    // products.filter((product) => { ... }): Lặp qua từng sản phẩm trong danh sách gốc products
+    // Logic lọc CATEGORY:
+    //    Nếu admin có chọn category để lọc
+    //    → sản phẩm phải thuộc 1 trong các category đã chọn
+    //    Nếu admin chưa chọn gì
+    //    → coi như sản phẩm nào cũng hợp lệ
+    // Logic lọc PLATFORM: Ý nghĩa 100% giống category, chỉ khác field platform
     return products.filter((product: Product) => {
       const categoryOk: boolean =
         filters.category.length > 0
@@ -563,7 +575,7 @@ export default function AdminProductsClient({
                   // So sánh trước / sau khi re-render
                   // Update đúng card bị thay đổi
                   key={product.id}
-                  // className: 
+                  // className:
                   className={`grid h-full min-h-[240px] self-stretch overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${
                     product.hidden ? "opacity-50" : ""
                   }`}
