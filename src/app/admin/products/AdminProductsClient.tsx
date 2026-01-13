@@ -502,7 +502,7 @@ export default function AdminProductsClient({
             </form>
 
             <div className="border-t border-gray-200 pt-3">
-              <h3 className="text-lg font-bold text-gray-900 pb-3">
+              <h3 className="text-lg font-bold text-gray-900 pb-2">
                 Lọc sản phẩm
               </h3>
               <h3 className="mb-1.5 text-sm font-semibold text-gray-900">

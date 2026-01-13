@@ -15,10 +15,24 @@ export default function CartClient() {
     totalItems,
     ready,
   } = useCart();
+  // useRouter() trả về đối tượng điều hướng
   const router = useRouter();
 
   const goToCheckout = () => {
+    // items: Mảng sản phẩm trong giỏ hàng
+    // Nếu giỏ hàng trống → không cho đi checkout
     if (items.length === 0) return;
+
+    // push = đẩy một URL mới vào history stack
+    // Giải thích đơn giản: Chuyển trang mà KHÔNG reload lại website
+    // Cơ chế khi gọi: router.push("/checkout");
+    // 1.Thêm /checkout vào browser history
+    // 2.Tải Component của /checkout
+    // 3.Giữ nguyên:
+    //     Context
+    //     State client
+    //     Session
+    // 4. Không reload HTML gốc
     router.push("/checkout");
   };
 

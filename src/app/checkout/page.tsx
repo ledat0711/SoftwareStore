@@ -195,10 +195,6 @@ export default function CheckoutPage() {
               <span>Thuế</span>
               <span>Đang giả lập</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Vận chuyển</span>
-              <span>Miễn phí</span>
-            </div>
           </div>
 
           {!hasPaid && (

@@ -23,8 +23,11 @@ enum Platform {
   Mobile
 }
 
+// Prisma có 2 loại field:
+// A. Scalar fields → CÓ cột trong database
+// B. Relation fields → KHÔNG có cột trong database
 model Product {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) // Scalar fields
   slug        String   @unique   // dùng cho URL :slack-premium: http://localhost:3000/products/slack-premium
   title       String             // tên hiển thị
   description String?
@@ -41,8 +44,8 @@ model Product {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
+  cartItems   CartItem[] // Relation fields
+  orderItems  OrderItem[] // Relation fields
 }
 
 // 1 user có 1 cart (giỏ hàng)
@@ -176,10 +179,9 @@ model Order {
 model OrderItem {
   id        String   @id @default(cuid())
   orderId   String
-  productId String
+  productId String?
   quantity  Int      @default(1)
   price     Float
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
-

@@ -191,9 +191,7 @@ async function main() {
   for (const product of allProducts) {
     await upsertProductFromSeed({
       ...product,
-      badge: product.badge ?? null,
-      category: "Software",
-      platform: "All",
+      badge: product.badge ?? null
     });
   }
 
