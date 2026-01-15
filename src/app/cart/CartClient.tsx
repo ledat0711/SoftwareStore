@@ -24,7 +24,7 @@ export default function CartClient() {
     if (items.length === 0) return;
 
     // push = đẩy một URL mới vào history stack
-    // Giải thích đơn giản: Chuyển trang mà KHÔNG reload lại website
+    // Cụ thể: Chuyển trang mà KHÔNG reload lại website
     // Cơ chế khi gọi: router.push("/checkout");
     // 1.Thêm /checkout vào browser history
     // 2.Tải Component của /checkout
@@ -168,10 +168,6 @@ export default function CartClient() {
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Taxes</span>
               <span>Calculated at checkout</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Shipping</span>
-              <span>Free</span>
             </div>
           </div>
           <div className="mt-5 grid gap-2">

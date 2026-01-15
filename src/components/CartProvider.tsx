@@ -53,18 +53,35 @@ const CartContext: React.Context<CartContextValue | null> =
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
 
-  console.log("CartProvider render, status =", status);
-
   const [items, setItems] = useState<CartItem[]>(() => readCartItems());
   const [ready, setReady] = useState(false);
 
   //useEffect #1 – load cart theo trạng thái đăng nhập
+  // Đã đăng nhập → lấy cart từ server
+  // Chưa đăng nhập → lấy cart từ localStorage
+  // Kiểm soát loading (ready)
+  // Tránh lỗi setState khi component đã unmount
+
+  // useEffect(() => {
+  //   ...
+  // }, [status]); useEffect chạy mỗi khi status thay đổi
   useEffect(() => {
+    // Biến active – chống bug setState sau unmount (unmount: component bị tháo ra / biến mất khỏi màn hình: khi chuyển trang)
+    // active là cờ an toàn (safety flag)
+    // true → component còn sống
+    // false → component đã unmount
+    // Dùng để tránh lỗi rất phổ biến: Can't perform a React state update on an unmounted component
     let active = true;
 
+    //
     async function loadCart(): Promise<void> {
-      // Trường hợp 1: ĐÃ đăng nhập
+      // Trường hợp 1: Người dùng đã login
       if (status === "authenticated") {
+        // setReady(false)	báo UI: đang load cart
+        // setItems([])	clear cart cũ để tránh hiển thị sai
+        // Tránh trường hợp:
+        // user logout → login account khác
+        // cart cũ vẫn hiện tạm thời
         setReady(false);
         setItems([]);
         try {
@@ -88,6 +105,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // if (status === "loading") // Đang kiểm tra session
       setReady(false);
     }
 
@@ -153,6 +171,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // updateQuantity & removeItem – cùng một nguyên lý
   // nếu đã đăng nhập => thao tác trên server
   // nếu chưa đăng nhập => thao tác trên localStorage
+  // tại sao KHÔNG dùng async/await?
+  // nếu dùng async thì phải bọc cả hàm hàm với từ khóa async
+  // trong khi hàm này có thể gọi ở server hoặc client
+  // nên không thể chắc chắn hàm này luôn chạy trong môi trường async
   const updateQuantity = useCallback(
     (id: string, quantity: number) => {
       if (status === "authenticated") {

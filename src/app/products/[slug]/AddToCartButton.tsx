@@ -30,9 +30,10 @@ export default function AddToCartButton({
   // existing: Dùng để đổi text nút:
   // “Thêm vào giỏ”
   // “Thêm tiếp”
-  const existing = items.find((entry) => entry.id === item.id);
+  const existing: CartItemInput | undefined = items.find((entry) => entry.id === item.id);
   const isAdding = status === "adding";
 
+  // label KHÔNG ảnh hưởng thuật toán, nó chỉ hiển thị trạng thái mà thôi.
   const label =
     status === "adding"
       ? "Đang thêm..."
@@ -71,7 +72,7 @@ export default function AddToCartButton({
 
   useEffect(() => () => clearTimer(), []);
 
-  async function handleClick() {
+  async function handleAddToCartClick() {
     if (isAdding) return;
     clearTimer();
     setStatus("adding");
@@ -99,7 +100,7 @@ export default function AddToCartButton({
   return (
     <button
       type="button"
-      onClick={handleClick}
+      onClick={handleAddToCartClick}
       disabled={isAdding}
       className={`max-w-[150px] inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-70 ${className}`}
     >

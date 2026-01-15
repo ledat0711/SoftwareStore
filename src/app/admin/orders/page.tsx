@@ -26,12 +26,12 @@ export default async function AdminOrdersPage() {
                 <div>
                   <p className="text-sm text-gray-500">Mã đơn: {order.id}</p>
                   <p className="text-xs text-gray-400">
-                    Ngày: {new Date(order.createdAt).toLocaleString()}
+                    Thời gian: {new Date(order.createdAt).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">
-                    Người mua: {order.user?.email ?? "Khách chưa đăng nhập/đăng ký"}
+                    Email khách hàng: {order.user?.email ?? "Khách chưa đăng nhập/đăng ký"}
                   </p>
                   <p className="text-lg font-semibold text-slate-900">
                     {currency(order.total)}
