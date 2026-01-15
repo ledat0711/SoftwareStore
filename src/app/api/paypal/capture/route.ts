@@ -9,6 +9,7 @@ type IncomingItem = { id?: string; quantity?: number };
 export async function POST(request: Request): Promise<NextResponse> {
   const session = await auth();
   const userId: string | null = session?.user?.id ?? null;
+  const userEmail: string | null = session?.user?.email ?? null;
 
   const body = await request.json().catch(() => null);
   const orderId =
@@ -16,6 +17,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rawItems: IncomingItem[] = Array.isArray(body?.items)
     ? body.items
     : [];
+  const guestEmailRaw =
+    typeof body?.email === "string" ? body.email.trim() : "";
 
   const items = rawItems
     .map((item) => ({
@@ -24,9 +27,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     }))
     .filter((item) => item.id && Number.isFinite(item.quantity));
 
-  if (!orderId || !items.length) {
+  const isGuest = !userId;
+  const emailToUse = isGuest ? guestEmailRaw : userEmail ?? guestEmailRaw;
+  const isValidEmail =
+    typeof emailToUse === "string" &&
+    emailToUse.length > 3 &&
+    emailToUse.includes("@");
+
+  if (!orderId || !items.length || (isGuest && !isValidEmail)) {
     return NextResponse.json(
-      { error: "Missing orderId or items" },
+      { error: "Missing orderId/items/email" },
       { status: 400 }
     );
   }
@@ -53,7 +63,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    const order = await createOrderFromCart(userId, items);
+    const order = await createOrderFromCart(userId, items, emailToUse);
     return NextResponse.json({ order, capture });
   } catch (error) {
     const message =

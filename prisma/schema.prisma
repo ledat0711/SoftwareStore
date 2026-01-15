@@ -170,6 +170,7 @@ model Order {
   userId    String?
   user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   total     Float
+  guestEmail String?
   status    String      @default("PAID")
   items     OrderItem[]
   createdAt DateTime    @default(now())

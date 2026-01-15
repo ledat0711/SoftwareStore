@@ -53,6 +53,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Trả về thông tin user nếu đã đăng nhập
   const session = await auth();
   const userId: string | null = session?.user?.id ?? null;
+  const userEmail: string | null = session?.user?.email ?? null;
 
   // request: Request
   // Đại diện cho HTTP request gửi tới server
@@ -72,6 +73,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Tránh lỗi khi truy cập .map() bên dưới
   const body = await request.json().catch(() => null);
   const rawItems: IncomingItem[] = Array.isArray(body?.items) ? body.items : [];
+  const guestEmailRaw =
+    typeof body?.email === "string" ? body.email.trim() : "";
 
   // 2. Chuẩn hóa và lọc lọc danh sách items
   // map(): Chuẩn hóa từng item/bản ghi trong rawItems thành dạng chuẩn:
@@ -105,15 +108,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Trả về phản hồi JSON với mã trạng thái 400 (Bad Request)
   // và thông báo lỗi "Missing or invalid items"
   // Đây là ví dụ của "fail fast" Ngay khi phát hiện lỗi, trả về lỗi ngay lập tức
-  if (!items.length) {
+  const isGuest = !userId;
+  const emailToUse = isGuest ? guestEmailRaw : userEmail ?? guestEmailRaw;
+  const isValidEmail =
+    typeof emailToUse === "string" &&
+    emailToUse.length > 3 &&
+    emailToUse.includes("@");
+
+  if (!items.length || (isGuest && !isValidEmail)) {
     return NextResponse.json(
-      { error: "Missing or invalid items" },
+      { error: "Missing or invalid items/email" },
       { status: 400 }
     );
   }
 
   try {
-    const order = await createOrderFromCart(userId, items);
+    const order = await createOrderFromCart(userId, items, emailToUse);
     return NextResponse.json({ order });
   } catch (error) {
     return NextResponse.json(

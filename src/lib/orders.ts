@@ -25,13 +25,15 @@ function clampQuantity(value: unknown, fallback = 1) {
 // mỗi phần tử có dạng { id, quantity }
 export async function createOrderFromCart(
   userId: string | null,
-  items: OrderItemInput[]
+  items: OrderItemInput[],
+  guestEmail?: string | null
 ) {
   const { orderItems, total } = await buildOrderItems(items);
 
   return prisma.order.create({
     data: {
       userId: userId ?? null,
+      guestEmail: guestEmail?.trim() || null,
       total,
       status: "PAID",
       items: {

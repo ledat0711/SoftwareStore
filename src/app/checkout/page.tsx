@@ -39,6 +39,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useCart } from "@/components/CartProvider";
 import { useToast } from "@/components/ToastProvider";
 import { currency } from "@/lib/helpers";
@@ -66,6 +67,7 @@ type OrderItemResponse = {
 export default function CheckoutPage() {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
   const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
+  const { status, data: session } = useSession();
   const { items, clear, ready } = useCart();
   const toast = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -75,6 +77,7 @@ export default function CheckoutPage() {
   );
   const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
+  const [guestEmail, setGuestEmail] = useState(session?.user?.email ?? "");
 
   // checkoutItems: Chỉ dùng để gửi server / PayPal
   // → Không chứa title, image, price
@@ -109,6 +112,15 @@ export default function CheckoutPage() {
   );
 
   const hasPaid = paidItems.length > 0;
+  const isGuest = status !== "authenticated";
+  const orderEmail = (session?.user?.email ?? guestEmail ?? "").trim();
+  const isValidEmail = orderEmail.length > 3 && orderEmail.includes("@");
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      setGuestEmail((prev) => (prev || session.user?.email) ?? "");
+    }
+  }, [session?.user?.email]);
 
   // mapOrderItems(): Convert response từ server → CheckoutItem chuẩn cho UI
   const mapOrderItems = (
@@ -165,7 +177,11 @@ export default function CheckoutPage() {
     if (!paypalButtonsRef.current) return;
     if (hasPaid) return;
     if (!checkoutItems.length) return;
+    if (isGuest && !isValidEmail) return;
 
+    // Chúng ta không cần tự tạo nút PayPal bằng tay.
+    // Chúng ta chỉ cần thiết lập các giá trị cho thuộc tính style và cung cấp hàm xử lý sự kiện (createOrder, onApprove, onError, onCancel).
+    // PayPal SDK sẽ lo phần UI và gọi hàm xử lý sự kiện tương ứng.
     // window.paypal.Buttons({...}) = chúng ta ĐĂNG KÝ cho PayPal biết:
     //     Khi người dùng bấm nút (và PayPal cần tạo đơn PayPal) → gọi createOrder
     //     Khi người dùng thanh toán xong và PayPal approve → gọi onApprove
@@ -176,7 +192,7 @@ export default function CheckoutPage() {
         const response = await fetch("/api/paypal/create-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: checkoutItems }),
+          body: JSON.stringify({ items: checkoutItems, email: orderEmail }),
         });
 
         const data = await response.json();
@@ -195,6 +211,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             orderId: data.orderID,
             items: checkoutItems,
+            email: orderEmail,
           }),
         });
 
@@ -260,6 +277,9 @@ export default function CheckoutPage() {
     paypalClientId,
     paypalScriptReady,
     paypalScriptError,
+    isGuest,
+    isValidEmail,
+    orderEmail,
     toast,
   ]);
 
@@ -306,7 +326,7 @@ export default function CheckoutPage() {
           href="/cart"
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
         >
-          Quay lai gio hang
+          Quay lại giỏ hàng
         </Link>
       </div>
 
@@ -362,9 +382,34 @@ export default function CheckoutPage() {
 
           {!hasPaid && (
             <div className="mt-5 grid gap-3">
+              {isGuest ? (
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold text-slate-900">
+                    Nhập email để nhận hóa đơn (*)
+                  </label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(event) => setGuestEmail(event.target.value)}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                    placeholder="you@example.com"
+                  />
+                  {!isValidEmail ? (
+                    <p className="text-xs text-red-600">
+                      Vui lòng nhập email hợp lệ để thanh toán.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               {paypalClientId ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div ref={paypalButtonsRef} />
+                  {isGuest && !isValidEmail ? (
+                    <p className="mt-2 text-xs text-gray-600">
+                      Nhập email để hiện nút PayPal.
+                    </p>
+                  ) : null}
                   {isProcessing ? (
                     <p className="mt-2 text-xs text-gray-500">
                       Đang xử lý thanh toán PayPal sandbox...
@@ -388,7 +433,7 @@ export default function CheckoutPage() {
                 href="/products"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
-                Tiep tuc mua sam
+                Tiếp tục mua sắm
               </Link>
             </div>
           )}

@@ -1,15 +1,22 @@
 import { NextResponse } from "next/server";
 
+import { auth } from "@/auth";
 import { buildOrderItems } from "@/lib/orders";
 import { createPaypalOrder } from "@/lib/paypal";
 
 type IncomingItem = { id?: string; quantity?: number };
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const session = await auth();
+  const userId: string | null = session?.user?.id ?? null;
+  const userEmail: string | null = session?.user?.email ?? null;
+
   const body = await request.json().catch(() => null);
   const rawItems: IncomingItem[] = Array.isArray(body?.items)
     ? body.items
     : [];
+  const guestEmailRaw =
+    typeof body?.email === "string" ? body.email.trim() : "";
 
   const items = rawItems
     .map((item) => ({
@@ -18,9 +25,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     }))
     .filter((item) => item.id && Number.isFinite(item.quantity));
 
-  if (!items.length) {
+  const isGuest = !userId;
+  const emailToUse = isGuest ? guestEmailRaw : userEmail ?? guestEmailRaw;
+  const isValidEmail =
+    typeof emailToUse === "string" &&
+    emailToUse.length > 3 &&
+    emailToUse.includes("@");
+
+  if (!items.length || (isGuest && !isValidEmail)) {
     return NextResponse.json(
-      { error: "Missing or invalid items" },
+      { error: "Missing or invalid items/email" },
       { status: 400 }
     );
   }

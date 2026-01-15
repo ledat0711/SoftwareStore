@@ -29,6 +29,12 @@ export function toggle<T extends string>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 }
 
+// chuẩn quốc tế hóa tiền tệ USD (theo en-US)
 export function currency(n: number) {
-  return `$${n}`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 5,
+  }).format(n);
 }
