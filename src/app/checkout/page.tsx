@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
@@ -29,11 +28,14 @@ type OrderItemResponse = {
 
 export default function CheckoutPage() {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
-  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
+  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";      
   const { items, clear, ready } = useCart();
   const toast = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalScriptReady, setPaypalScriptReady] = useState(false);
+  const [paypalScriptError, setPaypalScriptError] = useState<string | null>(
+    null
+  );
   const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
 
@@ -79,8 +81,42 @@ export default function CheckoutPage() {
       }))
       .filter((item) => item.id);
 
+  // Ensure PayPal SDK is present (works both on first load and client navigation)
   useEffect(() => {
     if (!paypalClientId) return;
+    if (typeof window === "undefined") return;
+    if (window.paypal) {
+      setPaypalScriptReady(true);
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-paypal-sdk="true"]'
+    );
+    if (existing) {
+      existing.addEventListener("load", () => setPaypalScriptReady(true), {
+        once: true,
+      });
+      existing.addEventListener(
+        "error",
+        () => setPaypalScriptError("Khong the tai PayPal SDK."),
+        { once: true }
+      );
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}&intent=capture&components=buttons`;
+    script.async = true;
+    script.dataset.paypalSdk = "true";
+    script.onload = () => setPaypalScriptReady(true);
+    script.onerror = () => setPaypalScriptError("Khong the tai PayPal SDK.");
+    document.head.appendChild(script);
+  }, [paypalClientId, paypalCurrency]);
+
+  useEffect(() => {
+    if (!paypalClientId) return;
+    if (paypalScriptError) return;
     if (!paypalScriptReady) return;
     if (!paypalButtonsRef.current) return;
     if (hasPaid) return;
@@ -162,14 +198,15 @@ export default function CheckoutPage() {
     hasPaid,
     paypalClientId,
     paypalScriptReady,
+    paypalScriptError,
     toast,
   ]);
 
   if (!ready && !hasPaid) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
-        <p className="mt-6 text-sm text-gray-600">Dang tai gio hang...</p>
+        <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
+        <p className="mt-6 text-sm text-gray-600">Đang tải giỏ hàng...</p>
       </main>
     );
   }
@@ -177,16 +214,16 @@ export default function CheckoutPage() {
   if (displayItems.length === 0 && !hasPaid) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
         <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center shadow-sm">
           <p className="text-sm text-gray-600">
-            Chua co san pham de thanh toan.
+            Chưa có sản phẩm để thanh toán.
           </p>
           <Link
             href="/products"
             className="mt-4 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
           >
-            Tiep tuc mua sam
+            Tiếp tục mua sắm
           </Link>
         </div>
       </main>
@@ -195,22 +232,13 @@ export default function CheckoutPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      {paypalClientId ? (
-        <Script
-          src={`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}&intent=capture&components=buttons`}
-          strategy="afterInteractive"
-          onLoad={() => setPaypalScriptReady(true)}
-          onError={() => toast.error("Khong the tai PayPal SDK.")}
-        />
-      ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">       
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>     
           <p className="text-sm text-gray-500">
             {hasPaid
-              ? "Da thanh toan bang PayPal (sandbox)"
-              : `${displayItems.length} san pham trong gio`}
+              ? "Đã thanh toán bằng PayPal (sandbox)"
+              : `${displayItems.length} sản phẩm trong giỏ hàng`}
           </p>
         </div>
         <Link
@@ -223,7 +251,7 @@ export default function CheckoutPage() {
 
       {hasPaid && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-          Thanh toan PayPal (sandbox) thanh cong! Cam on ban da mua hang.
+          Thanh toán PayPal (sandbox) thành công! Cảm ơn bạn đã mua hàng. 
         </div>
       )}
 
@@ -261,10 +289,10 @@ export default function CheckoutPage() {
         </section>
 
         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Tom tat don</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Tóm tắt đơn</h2>
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
             <div className="flex items-center justify-between">
-              <span>Tam tinh</span>
+              <span>Tạm tính</span>
               <span className="font-semibold text-slate-900">
                 {currency(displaySubtotal)}
               </span>
@@ -281,10 +309,15 @@ export default function CheckoutPage() {
                       Dang xu ly thanh toan PayPal sandbox...
                     </p>
                   ) : null}
+                  {paypalScriptError ? (
+                    <p className="mt-2 text-xs text-red-600">
+                      {paypalScriptError}
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-600">
-                  Chua cau hinh PayPal sandbox. Them NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET trong file .env.
+                  Chưa cấu hình PayPal sandbox. Thêm NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET trong file .env.
                 </div>
               )}
 
