@@ -10,8 +10,7 @@ import { createUserFormSchema } from "@/lib/users/validations";
 import { updateUserFormSchema } from "@/lib/users/validations";
 import { OrderStatus } from "@prisma/client";
 
-export const getUsers = authenticatedAction
-.action(
+export const getUsers = authenticatedAction.action(
   async ({ parsedInput, ctx: { userId } }) => {
       const data = await prisma.user.findMany({
       where: { isDeleted: true },
@@ -22,8 +21,7 @@ export const getUsers = authenticatedAction
   }
 );
 
-  export const createOrderItem = authenticatedAction
-  .action(async () => {
+  export const createOrderItem = authenticatedAction.action(async () => {
     const orderItem = await prisma.orderItem.create({
         data: {
           orderId: "cmk48ma4w0002vkxswih0h4on",

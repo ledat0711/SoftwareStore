@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PAYMENT_METHODS } from "@/constants";
 
 export const deleteLogSchema = z.object({
   id: z.string(),
@@ -25,4 +26,11 @@ export const updateUserFormSchema = z.object({
   emailVerified: z.coerce.date(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+});
+
+export const paymentMethodSchema = z.object({
+    type: z.string().min(1, "Payment method is required"),
+}).refine((data) => PAYMENT_METHODS.includes(data.type), {
+    path: ['type'],
+    message: 'Invalid payment method'
 });

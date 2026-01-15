@@ -3,10 +3,19 @@
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useTransition } from "react";
+import { ArrowRight, Loader } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function CartClient() {
   const { items, updateQuantity, removeItem, clear, subtotal, totalItems, ready } =
     useCart();
+
+    const router = useRouter();
+
+    const [isPending, startTransition] = useTransition();
 
   if (!ready) {
     return (
@@ -155,6 +164,30 @@ export default function CartClient() {
             </Link>
           </div>
         </aside>
+      </div>
+
+      <div className="mt-6 grid lg:grid-cols-[2fr_1fr]">
+        <Card>
+          <CardContent className="p-4 gap-4">
+              <div className="pb-3 text-xl">
+                  Subtotal ({items.reduce((a, c) => a + c.quantity, 0)}):
+                  <span className="font-bold">
+                      {/* {formatCurrency(cart.itemsPrice)} */}
+                      1000$
+                  </span>
+              </div>
+
+              <Button className="w-full" type="button" disabled={isPending} onClick={() =>
+                                startTransition(() => router.push('/customer/payment-method'))
+                            }>
+                  {isPending ? (
+                      <Loader className="w-4 h-4 animate-spin" />
+                  ) : (
+                      <ArrowRight className="w-4 h-4" />
+                  )} {' '} Proceed to Checkout
+              </Button >
+          </CardContent>
+          </Card>
       </div>
     </main>
   );
