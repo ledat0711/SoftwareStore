@@ -137,7 +137,13 @@ export default function CheckoutPage() {
       }))
       .filter((item) => item.id);
 
-  // Ensure PayPal SDK is present (works both on first load and client navigation)
+  // Đảm bảo PayPal SDK (window.paypal) luôn tồn tại trên trình duyệt trước khi render nút PayPal
+  // Nó giải quyết 3 vấn đề rất quan trọng trong Next.js App Router:
+  //     ❌ Không chạy trên server (SSR)
+  //     ❌ Không load trùng PayPal SDK
+  //     ✅ Hoạt động đúng cả:
+  //     Load trang lần đầu
+  //     Client navigation (Link, router.push)
   useEffect(() => {
     if (!paypalClientId) return;
     if (typeof window === "undefined") return;
@@ -166,7 +172,7 @@ export default function CheckoutPage() {
     script.async = true;
     script.dataset.paypalSdk = "true";
     script.onload = () => setPaypalScriptReady(true);
-    script.onerror = () => setPaypalScriptError("Khong the tai PayPal SDK.");
+    script.onerror = () => setPaypalScriptError("Không thể tải PayPal SDK.");
     document.head.appendChild(script);
   }, [paypalClientId, paypalCurrency]);
 

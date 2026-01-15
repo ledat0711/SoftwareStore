@@ -169,6 +169,7 @@ model Order {
   id        String      @id @default(cuid())
   userId    String?
   user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  code String @unique
   total     Float
   guestEmail String?
   status    String      @default("PAID")

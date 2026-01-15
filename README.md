@@ -46,3 +46,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
    - `PAYPAL_CURRENCY=USD` (tuy chon, server)
    - `NEXT_PUBLIC_PAYPAL_CURRENCY=USD` (tuy chon, client script)
 3. Khoi dong lai server (hoac `npm run dev`) sau khi cap nhat `.env`.
+
+## Order code format
+- Ma don: `ORD-YYYYMMDD-XXXX` (duoc luu trong truong `code` @unique).
+- Sau khi thay doi schema (thêm code vao Order), chay migration: `npx prisma migrate dev` (hoac `prisma db push` trong moi truong phu hop).

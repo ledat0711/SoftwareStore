@@ -11,6 +11,22 @@ type BuiltOrderItems = {
   total: number;
 };
 
+function generateOrderCode(date: Date, index: number): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `ORD-${y}${m}${d}-${String(index).padStart(4, "0")}`;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+  );
+}
+
 function clampQuantity(value: unknown, fallback = 1) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -30,26 +46,54 @@ export async function createOrderFromCart(
 ) {
   const { orderItems, total } = await buildOrderItems(items);
 
-  return prisma.order.create({
-    data: {
-      userId: userId ?? null,
-      guestEmail: guestEmail?.trim() || null,
-      total,
-      status: "PAID",
-      items: {
-        create: orderItems,
-      },
-    },
-    include: {
-      items: {
-        include: {
-          product: {
-            select: { id: true, slug: true, title: true, image: true },
-          },
+  const now = new Date();
+  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const dailyCount = await prisma.order.count({
+      where: {
+        createdAt: {
+          gte: startOfDay,
+          lt: endOfDay,
         },
       },
-    },
-  });
+    });
+
+    const code = generateOrderCode(now, dailyCount + 1 + attempt);
+
+    try {
+      return await prisma.order.create({
+        data: {
+          userId: userId ?? null,
+          guestEmail: guestEmail?.trim() || null,
+          total,
+          status: "PAID",
+          code,
+          items: {
+            create: orderItems,
+          },
+        },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: { id: true, slug: true, title: true, image: true },
+              },
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Unable to generate unique order code");
 }
 
 export async function buildOrderItems(

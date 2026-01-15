@@ -30,7 +30,9 @@ export default async function AdminOrdersPage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm text-gray-500">Mã đơn: {order.id}</p>
+                  <p className="text-sm text-gray-500">
+                    Mã đơn: {order.code ?? order.id}
+                  </p>
                     <p className="text-xs text-gray-400">
                       Thời gian: {new Date(order.createdAt).toLocaleString()}
                     </p>
