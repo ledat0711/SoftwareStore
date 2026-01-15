@@ -6,6 +6,11 @@ type OrderItemInput = {
   quantity: number;
 };
 
+type BuiltOrderItems = {
+  orderItems: { productId: string; quantity: number; price: number }[];
+  total: number;
+};
+
 function clampQuantity(value: unknown, fallback = 1) {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed)) return fallback;
@@ -22,6 +27,32 @@ export async function createOrderFromCart(
   userId: string | null,
   items: OrderItemInput[]
 ) {
+  const { orderItems, total } = await buildOrderItems(items);
+
+  return prisma.order.create({
+    data: {
+      userId: userId ?? null,
+      total,
+      status: "PAID",
+      items: {
+        create: orderItems,
+      },
+    },
+    include: {
+      items: {
+        include: {
+          product: {
+            select: { id: true, slug: true, title: true, image: true },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function buildOrderItems(
+  items: OrderItemInput[]
+): Promise<BuiltOrderItems> {
   // map: chuẩn hóa (duyệt từng phần tử trong mảng và biến đổi thành phần tử mới. Nhận vào item, trả ra object mới)
   // filter: kiểm tra tính hợp lệ
   const normalized: { productId: string; quantity: number }[] = items
@@ -178,25 +209,7 @@ export async function createOrderFromCart(
   //   { productId, quantity, price },
   //   { productId, quantity, price },
   // ]
-  return prisma.order.create({
-    data: {
-      userId: userId ?? null,
-      total,
-      status: "PAID",
-      items: {
-        create: orderItems,
-      },
-    },
-    include: {
-      items: {
-        include: {
-          product: {
-            select: { id: true, slug: true, title: true, image: true },
-          },
-        },
-      },
-    },
-  });
+  return { orderItems, total };
 }
 
 // async giúp không block chương trình khi đang chờ lấy dữ liệu từ database

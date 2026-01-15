@@ -1,35 +1,8 @@
-// CartProvider (Context)
-//    │
-//    ├─ items, subtotal, clear, ready
-//    │
-//    ▼
-// CheckoutPage (Client Component)
-//    │
-//    ├─ displayItems (items (trước thanh toán) HOẶC paidItems (sau thanh toán))
-//    ├─ displaySubtotal (tính lại từ displayItems)
-//    │
-//    ├─ click "Thanh toán Paypal"
-//    │      │
-//    │      ├─ gọi API /api/orders (POST)
-//    │      │      └─ lưu Order + OrderItem trong DB
-//    │      │
-//    │      └─ trả về order.items
-//    │
-//    ├─ setPaidItems(orderItems)
-//    ├─ clear() cart
-//    │
-//    ▼
-// UI hiển thị trạng thái "Đã thanh toán"
-
-// Trang Checkout là client component.
-// Nó lấy dữ liệu giỏ hàng từ CartProvider.
-// Khi chưa thanh toán, UI hiển thị dữ liệu từ cart.
-// Khi bấm thanh toán, nó gọi API tạo đơn hàng, lưu lại snapshot sản phẩm đã mua vào state paidItems, sau đó clear cart.
-
 "use client";
 
+import Script from "next/script";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { useToast } from "@/components/ToastProvider";
 import { currency } from "@/lib/helpers";
@@ -43,16 +16,36 @@ type CheckoutItem = {
   price: number;
 };
 
+type OrderItemResponse = {
+  product?: {
+    id?: string;
+    slug?: string;
+    title?: string;
+    image?: string | null;
+  };
+  quantity?: number;
+  price?: number;
+};
+
 export default function CheckoutPage() {
-  const { items, subtotal, clear, ready } = useCart();
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
+  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
+  const { items, clear, ready } = useCart();
   const toast = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // paidItems: sau khi thanh toán thành công thì sẽ lưu các sản phẩm đã mua vào paidItems để hiển thị lại cho người dùng xem
-  // Nếu không có paidItems → clear cart là mất dữ liệu hiển thị sau khi thanh toán
+  const [paypalScriptReady, setPaypalScriptReady] = useState(false);
+  const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
 
-  // displayItems: hiển thị item trước hoặc sau khi thanh toán
+  const checkoutItems = useMemo(
+    () =>
+      items.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+      })),
+    [items]
+  );
+
   const displayItems =
     paidItems.length > 0
       ? paidItems
@@ -65,11 +58,6 @@ export default function CheckoutPage() {
           price: item.price,
         }));
 
-  // Vì sao tính lại displaySubtotal?
-  // Tư duy decouple (tách phụ thuộc)
-  // Cart subtotal ≠ Order subtotal (sau này có thuế, giảm giá)
-  // UI không phụ thuộc cart nữa
-  // Luôn tính từ displayItems
   const displaySubtotal = displayItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -77,86 +65,111 @@ export default function CheckoutPage() {
 
   const hasPaid = paidItems.length > 0;
 
-  // Mục tiêu tổng thể của hàm handlePaypalSimulation:
-  // Hàm handlePaypalSimulation với chức năng giả lập thanh toán với 4 mục tiêu chính:
-  // 1. Chặn click trùng khi đang xử lý
-  // 2. Gửi cart items lên server để:
-  //      tạo Order
-  //      tạo OrderItem
-  // 3. Nhận lại bản sao chép sản phẩm đã mua
-  // 4. Cập nhật UI sang trạng thái “Đã thanh toán” → paidItems không phụ thuộc cart nữa
-  // async → cho phép dùng await bên trong hàm này để viết code bất đồng bộ dễ đọc hơn phương pháp then/catch
-  const handlePaypalSimulation = async () => {
-    if (isProcessing) return;
-    if (items.length === 0) {
-      // hiện bảng thông báo nhỏ Giỏ hàng trống, hãy thêm sản phẩm trước
-      toast.info("Giỏ hàng trống, hãy thêm sản phẩm trước.");
-      return;
-    }
+  const mapOrderItems = (
+    orderItems: OrderItemResponse[] | undefined
+  ): CheckoutItem[] =>
+    (orderItems ?? [])
+      .map((item) => ({
+        id: item.product?.id ?? "",
+        slug: item.product?.slug ?? "",
+        title: item.product?.title ?? "San pham",
+        image: item.product?.image ?? null,
+        quantity: item.quantity ?? 1,
+        price: item.price ?? 0,
+      }))
+      .filter((item) => item.id);
 
-    setIsProcessing(true);
-    try {
-      // Giả lập gọi PayPal: đợi một chút rồi cho là thành công
-      await new Promise((resolve) => setTimeout(resolve, 900));
+  useEffect(() => {
+    if (!paypalClientId) return;
+    if (!paypalScriptReady) return;
+    if (!paypalButtonsRef.current) return;
+    if (hasPaid) return;
+    if (!checkoutItems.length) return;
 
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-          })),
-        }),
+    const buttons = window.paypal?.Buttons({
+      style: { layout: "vertical", color: "gold", shape: "rect" },
+      createOrder: async () => {
+        setIsProcessing(true);
+        const response = await fetch("/api/paypal/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: checkoutItems }),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data?.id) {
+          setIsProcessing(false);
+          toast.error("Khong the khoi tao thanh toan PayPal.");
+          throw new Error("Unable to create PayPal order");
+        }
+
+        return data.id as string;
+      },
+      onApprove: async (data) => {
+        const response = await fetch("/api/paypal/capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId: data.orderID,
+            items: checkoutItems,
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          setIsProcessing(false);
+          toast.error("Khong the luu don hang. Vui long thu lai.");
+          throw new Error(result?.error ?? "Capture failed");
+        }
+
+        const orderItems = mapOrderItems(result?.order?.items);
+        if (!orderItems.length) {
+          setIsProcessing(false);
+          toast.error("Don hang khong hop le.");
+          return;
+        }
+
+        setPaidItems(orderItems);
+        clear();
+        toast.success("Thanh toan PayPal sandbox thanh cong!");
+        setIsProcessing(false);
+      },
+      onError: () => {
+        setIsProcessing(false);
+        toast.error("PayPal sandbox loi. Vui long thu lai.");
+      },
+      onCancel: () => {
+        setIsProcessing(false);
+      },
+    });
+
+    if (!buttons) return;
+
+    buttons
+      .render(paypalButtonsRef.current)
+      .catch(() => {
+        setIsProcessing(false);
+        toast.error("Khong the tai nut PayPal sandbox.");
       });
 
-      if (!response.ok) {
-        throw new Error("Order API failed");
-      }
-
-      type OrderItemResponse = {
-        product?: {
-          id?: string;
-          slug?: string;
-          title?: string;
-          image?: string | null;
-        };
-        quantity?: number;
-        price?: number;
-      };
-
-      const data = await response.json();
-      const orderItems: CheckoutItem[] =
-        (data?.order?.items as OrderItemResponse[] | undefined)?.map(
-          (item) => ({
-            id: item.product?.id ?? "",
-            slug: item.product?.slug ?? "",
-            title: item.product?.title ?? "Sản phẩm",
-            image: item.product?.image ?? null,
-            quantity: item.quantity ?? 1,
-            price: item.price ?? 0,
-          })
-        ) ?? [];
-
-      if (!orderItems.length) {
-        throw new Error("No order items returned");
-      }
-
-      setPaidItems(orderItems);
-      clear();
-      toast.success("Thanh toán (giả lập) thành công!");
-    } catch (error) {
-      toast.error("Không thể lưu đơn hàng. Vui lòng thử lại.");
-    } finally {
+    return () => {
       setIsProcessing(false);
-    }
-  };
+      void buttons.close();
+    };
+  }, [
+    checkoutItems,
+    clear,
+    hasPaid,
+    paypalClientId,
+    paypalScriptReady,
+    toast,
+  ]);
 
   if (!ready && !hasPaid) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
-        <p className="mt-6 text-sm text-gray-600">Đang tải giỏ hàng...</p>
+        <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
+        <p className="mt-6 text-sm text-gray-600">Dang tai gio hang...</p>
       </main>
     );
   }
@@ -164,16 +177,16 @@ export default function CheckoutPage() {
   if (displayItems.length === 0 && !hasPaid) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
         <div className="mt-6 rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center shadow-sm">
           <p className="text-sm text-gray-600">
-            Chưa có sản phẩm để thanh toán.
+            Chua co san pham de thanh toan.
           </p>
           <Link
             href="/products"
             className="mt-4 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
           >
-            Tiếp tục mua sắm
+            Tiep tuc mua sam
           </Link>
         </div>
       </main>
@@ -182,37 +195,40 @@ export default function CheckoutPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
+      {paypalClientId ? (
+        <Script
+          src={`https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}&intent=capture&components=buttons`}
+          strategy="afterInteractive"
+          onLoad={() => setPaypalScriptReady(true)}
+          onError={() => toast.error("Khong the tai PayPal SDK.")}
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Thanh toan</h1>
           <p className="text-sm text-gray-500">
             {hasPaid
-              ? "Đã thanh toán bằng PayPal (giả lập)"
-              : `${displayItems.length} sản phẩm trong giỏ`}
+              ? "Da thanh toan bang PayPal (sandbox)"
+              : `${displayItems.length} san pham trong gio`}
           </p>
         </div>
         <Link
           href="/cart"
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
         >
-          Quay lại giỏ hàng
+          Quay lai gio hang
         </Link>
       </div>
 
       {hasPaid && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-          Thanh toán (giả lập) thành công! Cảm ơn bạn đã mua hàng.
+          Thanh toan PayPal (sandbox) thanh cong! Cam on ban da mua hang.
         </div>
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        {/* <section className="grid gap-4"></section>
-        Chỉ là container UI, để bọc danh sách OrderItem đã mua
-        grid gap-4 = xếp các item theo dạng lưới, mỗi item cách nhau 4 
-        */}
         <section className="grid gap-4">
-          {/* JSX: map + HTML 
-          Với mỗi item trong mảng displayItems, hãy tạo ra một khối UI*/}
           {displayItems.map((item) => (
             <article
               key={item.id}
@@ -244,12 +260,11 @@ export default function CheckoutPage() {
           ))}
         </section>
 
-        {/* Tóm tắt đơn */}
         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Tóm tắt đơn</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Tom tat don</h2>
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
             <div className="flex items-center justify-between">
-              <span>Tạm tính</span>
+              <span>Tam tinh</span>
               <span className="font-semibold text-slate-900">
                 {currency(displaySubtotal)}
               </span>
@@ -257,22 +272,27 @@ export default function CheckoutPage() {
           </div>
 
           {!hasPaid && (
-            <div className="mt-5 grid gap-2">
-              <button
-                type="button"
-                onClick={handlePaypalSimulation}
-                disabled={isProcessing}
-                className="inline-flex items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isProcessing
-                  ? "Đang thanh toán Paypal..."
-                  : "Thanh toán bằng Paypal (giả lập)"}
-              </button>
+            <div className="mt-5 grid gap-3">
+              {paypalClientId ? (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <div ref={paypalButtonsRef} />
+                  {isProcessing ? (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Dang xu ly thanh toan PayPal sandbox...
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-600">
+                  Chua cau hinh PayPal sandbox. Them NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET trong file .env.
+                </div>
+              )}
+
               <Link
                 href="/products"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
-                Tiếp tục mua sắm
+                Tiep tuc mua sam
               </Link>
             </div>
           )}
@@ -283,7 +303,7 @@ export default function CheckoutPage() {
                 href="/products"
                 className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Mua thêm sản phẩm
+                Mua them san pham
               </Link>
             </div>
           )}
