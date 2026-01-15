@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import NavBar from "@/components/NavBar";
 import CartDropdown from "@/components/CartDropdown";
+import ProfileDropdown from "@/components/ProfileDropdown";
 import { Session } from "next-auth";
 
 export default function Header() {
@@ -17,25 +18,16 @@ export default function Header() {
             Software Store
           </Link>
           <div className="flex items-center space-x-4">
-            <CartDropdown />
             {session ? (
               <>
-                <div className="text-sm text-gray-500 text-right">
-                  {session.user?.name && <div>{session.user.name}</div>}
-                  <div>{session.user?.email}</div>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                >
-                  Sign Out
-                </button>
+                <ProfileDropdown userName={session.user?.name || ""} email={session.user?.email || ""} />
               </>
             ) : (
               <Link href="/login" className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
                 Sign In
               </Link>
             )}
+            <CartDropdown />
           </div>
         </nav>
       </div>

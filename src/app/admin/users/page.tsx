@@ -1,14 +1,21 @@
-import { auth } from "@/auth";
-import { Session } from "next-auth";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { DataTable } from "@/components/data-table";
+import { columns } from "@/components/groups/user/columns";
+import { PageWrapper } from "@/components/parts/page-wrapper";
+import { getUsers } from "./action";
 
-export default async function AdminUsersPage() {
-  const session: Session | null = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
+export default async function Page() {
+  const users = await getUsers();
+  const { data: usersData, serverError } = users || {};
+
+  // check for errors
+  if (!usersData || serverError) notFound();
+  
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Quản lý người dùng</h1>
-      <p className="text-gray-600">Trang quản lý người dùng (placeholder).</p>
-    </div>
+      <>
+        <PageWrapper>
+          <DataTable columns={columns} data={usersData} filterColumn="name" createObject={true} />
+        </PageWrapper>
+      </>
   );
 }

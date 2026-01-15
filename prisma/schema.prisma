@@ -1,50 +1,31 @@
-// Created database on cloud supabase but can't connect to prisma yet, so currently using localhost to test.
-datasource db {
-    provider = "postgresql"
-    // ****local****
-    url = "postgresql://postgres:postgres@localhost:5432/postgres"
-
-    // ****cloud****
-    // url = env("DATABASE_URL")
-    // directUrl = env("DIRECT_DATABASE_URL")
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-enum Department {
-  Apps
-  Games
-}
-
-enum Platform {
-  PC
-  Mobile
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  slug        String   @unique   // dùng cho URL :slack-premium: http://localhost:3000/products/slack-premium
-  title       String             // tên hiển thị
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
   description String?
   image       String?
   price       Float
-  rating      Float?            
-  tag         String?           // (Năng suất/Dev Tools/Thiết kế...) (fix: category => tag)
-  badge       String?           //
-
-  category    String?           // (Software/Apps/Games...) (fix: department => category)
-  platform    String?           // PC/Mobile/All...
-
-  hidden      Boolean  @default(false)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  rating      Float?
+  tag         String?
+  badge       String?
+  category    String?
+  platform    String?
+  hidden      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   cartItems   CartItem[]
 }
 
-// 1 user có 1 cart (giỏ hàng)
 model User {
   id            String          @id @default(cuid())
   name          String?
@@ -52,34 +33,30 @@ model User {
   password      String?
   emailVerified DateTime?
   image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  isDeleted     Boolean         @default(false)
   accounts      Account[]
-  sessions      Session[]
-  cart          Cart?
-  roles         RoleUser[]   // 1-n với bảng trung gian
-  // Optional for WebAuthn support
   Authenticator Authenticator[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isDeleted Boolean  @default(false)
+  cart          Cart?
+  orders        Order[]
+  roles         RoleUser[]
+  sessions      Session[]
 }
 
 model Role {
-  id    String       @id @default(cuid())
-  name  String       @unique
-  
-  users RoleUser[]   // 1-n với bảng trung gian
+  id    String     @id @default(cuid())
+  name  String     @unique
+  users RoleUser[]
 }
 
-// bảng trung gian RoleUser
 model RoleUser {
   userId String
   roleId String
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId]) // composite primary key
+  @@id([userId, roleId])
 }
 
 model Account {
@@ -94,34 +71,30 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
- 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([provider, providerAccountId])
 }
- 
+
 model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
- 
+
 model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@id([identifier, token])
 }
- 
-// Optional for WebAuthn support
+
 model Authenticator {
   credentialID         String  @unique
   userId               String
@@ -131,21 +104,18 @@ model Authenticator {
   credentialDeviceType String
   credentialBackedUp   Boolean
   transports           String?
- 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([userId, credentialID])
 }
 
-// bảng cart và product có mối quan hệ n-n
-// nên cần bảng trung gian CartItem
 model Cart {
   id        String     @id @default(cuid())
   userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
 }
 
 model CartItem {
@@ -153,11 +123,55 @@ model CartItem {
   cartId    String
   productId String
   quantity  Int      @default(1)
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, productId])
 }
+
+enum Department {
+  Apps
+  Games
+}
+
+enum Platform {
+  PC
+  Mobile
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  userId        String
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId    String
+  productId  String
+
+  title      String
+  image      String?
+  price      Float
+  quantity   Int
+
+  order      Order    @relation(fields: [orderId], references: [id])
+}
+
 

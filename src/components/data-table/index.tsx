@@ -17,6 +17,14 @@ import {
 } from "@tanstack/react-table";
 
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import {
   Table,
   TableBody,
   TableCell,
@@ -27,14 +35,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-import { DataTablePagination } from "@/components/data-table/pagination";
 import { DataTableViewOptions } from "@/components/data-table/column-toggle";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  filterColumn?: string;
+  filterColumn: string;
   createObject?: boolean;
 }
 
@@ -44,12 +50,12 @@ export function DataTable<TData, TValue>({
   filterColumn,
   createObject,
 }: DataTableProps<TData, TValue>) {
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+
   const table = useReactTable({
     data,
     columns,
@@ -75,12 +81,12 @@ export function DataTable<TData, TValue>({
             placeholder="Filter..."
             value={
               (table
-                .getColumn(filterColumn || "name")
+                .getColumn(filterColumn)
                 ?.getFilterValue() as string) ?? ""
             }
             onChange={(event) =>
               table
-                .getColumn(filterColumn || "name")
+                .getColumn(filterColumn)
                 ?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
@@ -88,7 +94,7 @@ export function DataTable<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
         {createObject && (
-          <Link href="/endpoints/create">
+          <Link href="/users/create">
             <Button variant="outline">Create user</Button>
           </Link>
         )}
@@ -143,7 +149,6 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
     </div>
   );
 }

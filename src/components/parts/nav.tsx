@@ -1,30 +1,32 @@
-// Component Imports
-//import AccountWidget from "../auth/widget";
+"use client";
+
 import Link from "next/link";
-import Image from "next/image";
 import { LucideProps } from "lucide-react";
-
-// Image Imports
-// import Logo from "@/public/logo.svg";
-
 // Icon Imports
-import { BarChart, Contact, Layers, LifeBuoy, Disc3, Book } from "lucide-react";
+import { BarChart, Contact, Layers, ShoppingCart, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { ROLES, Role } from "@/constants/role";
 
-const links = [
-  { href: "/", text: "Profile", icon: BarChart },
-  { href: "/endpoints", text: "ninZaFamily", icon: Layers },
-  { href: "/leads", text: "License Manager", icon: Contact },
-  { href: "/logs", text: "Logs", icon: Disc3 },
+type AppUser = {
+  role?: Role;
+};
+
+const userLinks = [
+  { href: "/customer/profile", text: "Profile", icon: BarChart },
+  { href: "/customer/orders", text: "Orders", icon: ShoppingCart },
+  { href: "https://ninza.co/download", text: "ninZaFamily", icon: Layers },
+  { href: "/customer/license-manager", text: "License Manager", icon: Contact },
 ];
 
-const otherLinks = [
-  { href: "https://router.so/docs", text: "Documentation", icon: Book },
-  { href: "/support", text: "Support", icon: LifeBuoy },
+const adminLinks = [
+  { href: "/admin/users", text: "Users", icon: Users },
 ];
 
 export default async function Nav() {
-  // const usage = await getUsageForUser();
-  // const plan = usage?.data?.plan;
+    // const { data: session } = useSession();
+  
+    // const role: Role | undefined = (session?.user as AppUser)?.role;
+    // const isAdmin: boolean = role === ROLES.ADMIN;
 
   return (
     <nav className="p-4 flex flex-col gap-4 justify-between h-screen">
@@ -32,17 +34,12 @@ export default async function Nav() {
         href="/"
         className="border bg-muted/50 flex items-center gap-2 rounded-lg p-6"
       >
-        
       </Link>
+      
       <div className="border bg-muted/50 rounded-lg flex flex-col justify-between p-6 h-full">
         <div className="flex flex-col gap-8">
           <div className="grid gap-2">
-            {links.map((link) => (
-              <NavLink key={link.href} icon={link.icon} href={link.href}>
-                {link.text}
-              </NavLink>
-            ))}
-            {otherLinks.map((link) => (
+            {userLinks.map((link) => (
               <NavLink key={link.href} icon={link.icon} href={link.href}>
                 {link.text}
               </NavLink>
