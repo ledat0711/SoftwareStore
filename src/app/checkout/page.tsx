@@ -1,3 +1,40 @@
+// Luồng tổng quát
+// CartProvider
+//    │
+//    ├─ items, clear(), ready
+//    │
+//    ▼
+// CheckoutPage
+//    │
+//    ├─ checkoutItems   (id + quantity)  → gửi cho PayPal
+//    ├─ displayItems    (dữ liệu để render UI)
+//    ├─ displaySubtotal (tính tiền)
+//    │
+//    ├─ Load PayPal SDK (useEffect #1)
+//    │
+//    ├─ Render PayPal Buttons (useEffect #2)
+//    │      │
+//    │      ├─ createOrder  → POST /api/paypal/create-order
+//    │      ├─ onApprove    → POST /api/paypal/capture
+//    │      │                   ↓
+//    │      │             result.order.items
+//    │      │                   ↓
+//    │      │            mapOrderItems()
+//    │      │                   ↓
+//    │      │             setPaidItems()
+//    │      │             clear() cart
+//    │      │
+//    │      └─ onError / onCancel
+//    │
+//    ▼
+// UI
+//    ├─ Trước thanh toán: hiển thị items từ cart
+//    └─ Sau thanh toán: hiển thị paidItems
+
+// *** Key idea ***
+// cart items ≠ order items
+// Sau khi trả tiền, UI không phụ thuộc cart nữa.
+
 "use client";
 
 import Link from "next/link";
@@ -28,7 +65,7 @@ type OrderItemResponse = {
 
 export default function CheckoutPage() {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
-  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";      
+  const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
   const { items, clear, ready } = useCart();
   const toast = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -39,6 +76,9 @@ export default function CheckoutPage() {
   const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
 
+  // checkoutItems: Chỉ dùng để gửi server / PayPal
+  // → Không chứa title, image, price
+  // → Server sẽ tự lấy giá thật từ DB (an toàn)
   const checkoutItems = useMemo(
     () =>
       items.map((item) => ({
@@ -48,6 +88,9 @@ export default function CheckoutPage() {
     [items]
   );
 
+  // displayItems chỉ phục vụ UI
+  // Trước thanh toán → lấy từ cart
+  // Sau thanh toán → lấy từ paidItems (snapshot)
   const displayItems =
     paidItems.length > 0
       ? paidItems
@@ -67,6 +110,7 @@ export default function CheckoutPage() {
 
   const hasPaid = paidItems.length > 0;
 
+  // mapOrderItems(): Convert response từ server → CheckoutItem chuẩn cho UI
   const mapOrderItems = (
     orderItems: OrderItemResponse[] | undefined
   ): CheckoutItem[] =>
@@ -122,8 +166,11 @@ export default function CheckoutPage() {
     if (hasPaid) return;
     if (!checkoutItems.length) return;
 
+    // window.paypal.Buttons({...}) = chúng ta ĐĂNG KÝ cho PayPal biết:
+    //     Khi người dùng bấm nút (và PayPal cần tạo đơn PayPal) → gọi createOrder
+    //     Khi người dùng thanh toán xong và PayPal approve → gọi onApprove
     const buttons = window.paypal?.Buttons({
-      style: { layout: "vertical", color: "gold", shape: "rect" },
+      style: { layout: "vertical", color: "gold", shape: "rect", label: "pay" },
       createOrder: async () => {
         setIsProcessing(true);
         const response = await fetch("/api/paypal/create-order", {
@@ -172,7 +219,7 @@ export default function CheckoutPage() {
       },
       onError: () => {
         setIsProcessing(false);
-        toast.error("PayPal sandbox loi. Vui long thu lai.");
+        toast.error("Paypal sandbox lỗi. Vui lòng thử lại.");
       },
       onCancel: () => {
         setIsProcessing(false);
@@ -181,12 +228,26 @@ export default function CheckoutPage() {
 
     if (!buttons) return;
 
-    buttons
-      .render(paypalButtonsRef.current)
-      .catch(() => {
-        setIsProcessing(false);
-        toast.error("Khong the tai nut PayPal sandbox.");
-      });
+    // Khi render PayPal Buttons vào div rỗng paypalButtonsRef.current thì
+    // PayPal SDK sẽ tự động tạo nút PayPal và gắn vào div đó cho chúng ta.
+    // Chúng ta không cần tự tạo nút PayPal bằng tay.
+    // Chúng ta chỉ cần cung cấp hàm xử lý sự kiện (createOrder, onApprove, onError, onCancel).
+    // PayPal SDK sẽ lo phần UI và gọi hàm xử lý sự kiện tương ứng.
+    // render: giải thích ngắn gọn: PayPal SDK nạp nút PayPal vào div paypalButtonsRef.current.
+    // giải thích đầy đủ:
+    // paypalButtonsRef.current
+    //     là DOM element thật (<div>) mà React đã render ra
+    // buttons
+    //     là instance UI do window.paypal.Buttons({...}) tạo ra
+    // render(element)
+    //     PayPal SDK tự sinh HTML + iframe + JS nội bộ
+    //     rồi inject trực tiếp vào element đó
+    //     Bạn KHÔNG tự vẽ nút PayPal
+    //     Bạn chỉ “chỉ vị trí” cho PayPal vẽ
+    buttons.render(paypalButtonsRef.current).catch(() => {
+      setIsProcessing(false);
+      toast.error("Không thể tải nút PayPal sandbox.");
+    });
 
     return () => {
       setIsProcessing(false);
@@ -232,9 +293,9 @@ export default function CheckoutPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-3">       
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>     
+          <h1 className="text-3xl font-bold text-slate-900">Thanh toán</h1>
           <p className="text-sm text-gray-500">
             {hasPaid
               ? "Đã thanh toán bằng PayPal (sandbox)"
@@ -251,7 +312,7 @@ export default function CheckoutPage() {
 
       {hasPaid && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
-          Thanh toán PayPal (sandbox) thành công! Cảm ơn bạn đã mua hàng. 
+          Thanh toán PayPal (sandbox) thành công! Cảm ơn bạn đã mua hàng.
         </div>
       )}
 
@@ -306,7 +367,7 @@ export default function CheckoutPage() {
                   <div ref={paypalButtonsRef} />
                   {isProcessing ? (
                     <p className="mt-2 text-xs text-gray-500">
-                      Dang xu ly thanh toan PayPal sandbox...
+                      Đang xử lý thanh toán PayPal sandbox...
                     </p>
                   ) : null}
                   {paypalScriptError ? (
@@ -317,7 +378,9 @@ export default function CheckoutPage() {
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-gray-200 p-3 text-sm text-gray-600">
-                  Chưa cấu hình PayPal sandbox. Thêm NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET trong file .env.
+                  Chưa cấu hình PayPal sandbox. Thêm
+                  NEXT_PUBLIC_PAYPAL_CLIENT_ID, PAYPAL_CLIENT_ID,
+                  PAYPAL_CLIENT_SECRET trong file .env.
                 </div>
               )}
 
@@ -336,7 +399,7 @@ export default function CheckoutPage() {
                 href="/products"
                 className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Mua them san pham
+                Mua thêm sản phẩm
               </Link>
             </div>
           )}
