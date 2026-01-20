@@ -15,18 +15,26 @@ export default function NavBar() {
 
   const role: Role | undefined = (session?.user as AppUser)?.role;
   const isAdmin: boolean = role === ROLES.ADMIN;
+  const isAuthenticated: boolean = Boolean(session?.user);
 
   type NavItem = { label: string; href: string };
   const baseItems: NavItem[] = [
     { label: "Best Sellers", href: "/best-sellers" },
     { label: "New Releases", href: "/new-releases" },
   ];
+  const authedItems: NavItem[] = isAuthenticated
+    ? [{ label: "Đơn hàng của tôi", href: "/orders" }]
+    : [];
   const adminItems: NavItem[] = [
     { label: "Quản lý sản phẩm", href: "/admin/products" },
     { label: "Quản lý đơn hàng", href: "/admin/orders" },
     { label: "Quản lý người dùng", href: "/admin/users" },
   ];
-  const items: NavItem[] = isAdmin ? [...baseItems, ...adminItems] : baseItems;
+  const items: NavItem[] = [
+    ...baseItems,
+    ...authedItems,
+    ...(isAdmin ? adminItems : []),
+  ];
 
   return (
     <div className="px-8 pb-4">

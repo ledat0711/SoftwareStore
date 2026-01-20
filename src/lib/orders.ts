@@ -363,3 +363,34 @@ export async function getOrdersPage(page = 1, pageSize = 10) {
 
   return { orders, total, totalPages, pageSize: take, currentPage };
 }
+
+export async function getUserOrdersPage(
+  userId: string,
+  page = 1,
+  pageSize = 10
+) {
+  const take = Math.max(1, pageSize);
+  if (!userId) {
+    return {
+      orders: [],
+      total: 0,
+      totalPages: 1,
+      pageSize: take,
+      currentPage: 1,
+    };
+  }
+
+  const total = await prisma.order.count({ where: { userId } });
+  const totalPages = Math.max(1, Math.ceil(total / take));
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+
+  const orders = await prisma.order.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * take,
+    take,
+    include: orderInclude,
+  });
+
+  return { orders, total, totalPages, pageSize: take, currentPage };
+}
