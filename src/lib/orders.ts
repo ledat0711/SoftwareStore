@@ -6,9 +6,9 @@ type OrderItemInput = {
   quantity: number;
 };
 
-type BuiltOrderItems = {
+export type BuiltOrderItems = {
   orderItems: { productId: string; quantity: number; price: number }[];
-  total: number;
+  totalMoney: number;
 };
 
 function generateOrderCode(date: Date, index: number): string {
@@ -39,15 +39,23 @@ function clampQuantity(value: unknown, fallback = 1) {
 // items: OrderItemInput[] nghĩa là:
 // items là một mảng
 // mỗi phần tử có dạng { id, quantity }
+
+// hàm createOrderFromCart làm 4 việc chính:
+// Chuẩn hóa items + tính tổng tiền từ giỏ hàng (buildOrderItems)
+// Tạo khoảng thời gian “hôm nay theo UTC” để đếm số đơn trong ngày
+// Sinh mã đơn code theo ngày + số thứ tự trong ngày
+// Ghi Order + OrderItems vào DB bằng Prisma, và retry tối đa 3 lần nếu code bị trùng (unique)
 export async function createOrderFromCart(
   userId: string | null,
   items: OrderItemInput[],
   guestEmail?: string | null
 ) {
-  const { orderItems, total } = await buildOrderItems(items);
+  const { orderItems, totalMoney } = await buildOrderItems(items);
 
   const now = new Date();
-  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const startOfDay = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
   const endOfDay = new Date(startOfDay);
   endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
@@ -61,6 +69,7 @@ export async function createOrderFromCart(
       },
     });
 
+    // tạo mã đơn
     const code = generateOrderCode(now, dailyCount + 1 + attempt);
 
     try {
@@ -68,7 +77,7 @@ export async function createOrderFromCart(
         data: {
           userId: userId ?? null,
           guestEmail: guestEmail?.trim() || null,
-          total,
+          total: totalMoney,
           status: "PAID",
           code,
           items: {
@@ -104,7 +113,7 @@ export async function buildOrderItems(
   const normalized: { productId: string; quantity: number }[] = items
     .map((item) => ({
       productId: String(item.id ?? "").trim(),
-      quantity: clampQuantity(item.quantity, 1),
+      quantity: clampQuantity(item.quantity, 1), // clampQuantity: giới hạn số lượng từ 1 đến 99
     }))
     .filter((item) => item.productId && item.quantity > 0);
 
@@ -128,6 +137,22 @@ export async function buildOrderItems(
   //    tránh query DB lặp
   //    tối ưu performance
   const productIds = [...new Set(normalized.map((item) => item.productId))];
+
+  // select = chỉ lấy các cột cần thiết.
+  // true nghĩa là lấy field đó.Nó có nghĩa là:
+
+  // câu lệnh prisma.product.findMany bên dưới có ý nghĩa:
+  // Lấy nhiều sản phẩm
+  // Điều kiện:
+  // id nằm trong danh sách productIds
+  // Chỉ lấy các cột:
+  // id
+  // title
+  // slug
+  // image
+  // price
+
+  // Chuyển sang câu query PostgreSQL tương đương:
   // SELECT
   //   id,
   //   title,
@@ -140,9 +165,7 @@ export async function buildOrderItems(
   //   'id2',
   //   'id3'
   // );
-
-  // select = chỉ lấy các cột cần thiết.
-  // true nghĩa là lấy field đó.
+  // 'id1', 'id2', 'id3' là các phần tử trong mảng productIds
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     select: { id: true, title: true, slug: true, image: true, price: true },
@@ -156,6 +179,7 @@ export async function buildOrderItems(
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   // Tạo orderItems chỉ gồm sản phẩm tồn tại trong DB
+  // ***** Ngắn gọn: kiểm tra dữ liệu product mà client gửi lên có tồn tại trong DB không. Nếu không tồn tại thì loại bỏ sản phẩm đó. *****
   const orderItems: {
     productId: string;
     quantity: number;
@@ -198,7 +222,7 @@ export async function buildOrderItems(
   // 0 là giá trị khởi tạo.
   // Mỗi vòng:
   // cộng thêm item.price * item.quantity
-  const total = orderItems.reduce(
+  const totalMoney = orderItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
@@ -255,7 +279,7 @@ export async function buildOrderItems(
   //   { productId, quantity, price },
   //   { productId, quantity, price },
   // ]
-  return { orderItems, total };
+  return { orderItems, totalMoney: totalMoney };
 }
 
 // async giúp không block chương trình khi đang chờ lấy dữ liệu từ database

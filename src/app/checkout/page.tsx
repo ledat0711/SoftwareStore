@@ -73,7 +73,7 @@ export default function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalScriptReady, setPaypalScriptReady] = useState(false);
   const [paypalScriptError, setPaypalScriptError] = useState<string | null>(
-    null
+    null,
   );
   const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
@@ -82,13 +82,13 @@ export default function CheckoutPage() {
   // checkoutItems: Chỉ dùng để gửi server / PayPal
   // → Không chứa title, image, price
   // → Server sẽ tự lấy giá thật từ DB (an toàn)
-  const checkoutItems = useMemo(
+  const checkoutItems: { id: string; quantity: number }[] = useMemo(
     () =>
       items.map((item) => ({
         id: item.id,
         quantity: item.quantity,
       })),
-    [items]
+    [items],
   );
 
   // displayItems chỉ phục vụ UI
@@ -108,7 +108,7 @@ export default function CheckoutPage() {
 
   const displaySubtotal = displayItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   const hasPaid = paidItems.length > 0;
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
 
   // mapOrderItems(): Convert response từ server → CheckoutItem chuẩn cho UI
   const mapOrderItems = (
-    orderItems: OrderItemResponse[] | undefined
+    orderItems: OrderItemResponse[] | undefined,
   ): CheckoutItem[] =>
     (orderItems ?? [])
       .map((item) => ({
@@ -137,53 +137,96 @@ export default function CheckoutPage() {
       }))
       .filter((item) => item.id);
 
+  // Tạo PayPal SDK (window.paypal) vào trong trình duyệt
   // Đảm bảo PayPal SDK (window.paypal) luôn tồn tại trên trình duyệt trước khi render nút PayPal
-  // Nó giải quyết 3 vấn đề rất quan trọng trong Next.js App Router:
+  // useEffect này giải quyết 3 vấn đề rất quan trọng trong Next.js App Router:
   //     ❌ Không chạy trên server (SSR)
   //     ❌ Không load trùng PayPal SDK
-  //     ✅ Hoạt động đúng cả:
-  //     Load trang lần đầu
-  //     Client navigation (Link, router.push)
+  //     ✅ Hoạt động đúng trong các trường hợp:
+  //          + Load trang lần đầu
+  //          + Client navigation (Link, router.push)
   useEffect(() => {
+    // Chặn các trường hợp không hợp lệ
+    // 👉 Nếu chưa cấu hình PayPal, thì:
+    //    Không load script
+    //    Không render nút
+    //    Không làm gì cả
     if (!paypalClientId) return;
     if (typeof window === "undefined") return;
+
     if (window.paypal) {
       setPaypalScriptReady(true);
       return;
     }
 
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-paypal-sdk="true"]'
-    );
+    {
+      /*
+      // Trong trang web hiện tại, tìm xem đã có thẻ <script> nào dùng để load PayPal SDK chưa.
+      / Tức là nó sẽ match với thẻ này:
+      <script
+        src="https://www.paypal.com/sdk/js?... "
+        data-paypal-sdk="true">
+      </script> */
+    }
+
+    // <HTMLScriptElement> cung cấp các thuộc tính và phương thức đặc biệt để thao tác với phần tử <script>
+    // Có thể truy xuất các thuộc tính như:
+    // .src
+    // .onload
+    // .onerror
+    const existing: HTMLScriptElement | null =
+      document.querySelector<HTMLScriptElement>(
+        'script[data-paypal-sdk="true"]',
+      );
+
     if (existing) {
+      // thẻ <script> phát ra event "load" khi Script đã tải xong và thực thi xong
+      // Khi script PayPal load xong → đánh dấu state paypalScriptReady = true để React biết là có thể render PayPal Buttons
       existing.addEventListener("load", () => setPaypalScriptReady(true), {
         once: true,
       });
+
+      // "error": event bắn ra khi script tải thất bại
+      // once: true
+      // Listener chỉ chạy 1 lần duy nhất, xong là tự hủy để:
       existing.addEventListener(
         "error",
         () => setPaypalScriptError("Khong the tai PayPal SDK."),
-        { once: true }
+        {
+          once: true,
+        },
       );
+
       return;
     }
 
     const script = document.createElement("script");
     script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=${paypalCurrency}&intent=capture&components=buttons`;
     script.async = true;
+
+    // data-paypal-sdk="true": dòng này sẽ tạo ra trong HTML: data-paypal-sdk="true"
+    // dòng ở phía trên: querySelector('script[data-paypal-sdk="true"]') Đi tìm script đó
     script.dataset.paypalSdk = "true";
+
+    // .onload và .onerror là thao tác đăng ký callback cho 2 event: load (Tải thành công) & error (Tải thất bại)
+    // Script mới → bạn kiểm soát hoàn toàn → dùng .onload cho gọn
+    // Script cũ → có thể đã có handler → dùng addEventListener cho an toàn
     script.onload = () => setPaypalScriptReady(true);
     script.onerror = () => setPaypalScriptError("Không thể tải PayPal SDK.");
     document.head.appendChild(script);
   }, [paypalClientId, paypalCurrency]);
 
   useEffect(() => {
-    if (!paypalClientId) return;
-    if (paypalScriptError) return;
-    if (!paypalScriptReady) return;
-    if (!paypalButtonsRef.current) return;
-    if (hasPaid) return;
-    if (!checkoutItems.length) return;
-    if (isGuest && !isValidEmail) return;
+    // một dẫy các câu lệnh kết thúc với return: đây là hàng rào điều kiện trước khi cho phép code tạo và render nút PayPal bằng window.paypal.Buttons(...).
+    // bất kỳ điều kiện nào không hợp lệ → return ngay → KHÔNG tạo nút, KHÔNG gọi PayPal SDK, Không cho thanh toán
+
+    if (!paypalClientId) return; // Nếu chưa cấu hình PayPal Client ID thì return
+    if (paypalScriptError) return; // Nếu SDK PayPal load bị lỗi thì return
+    if (!paypalScriptReady) return; // Chỉ tiếp tục khi: Script PayPal đã load xong và window.paypal đã tồn tại
+    if (!paypalButtonsRef.current) return; // Chỉ render khi: <div ref={paypalButtonsRef} /> đã tồn tại trong DOM
+    if (hasPaid) return; // Nếu đã thanh toán rồi → không hiện lại nút PayPal
+    if (!checkoutItems.length) return; // Nếu không có sản phẩm → không cho thanh toán
+    if (isGuest && !isValidEmail) return; // Nếu là guest (chưa đăng nhập) mà: Chưa nhập email hợp lệ  không cho thanh toán
 
     // Chúng ta không cần tự tạo nút PayPal bằng tay.
     // Chúng ta chỉ cần thiết lập các giá trị cho thuộc tính style và cung cấp hàm xử lý sự kiện (createOrder, onApprove, onError, onCancel).
@@ -191,16 +234,63 @@ export default function CheckoutPage() {
     // window.paypal.Buttons({...}) = chúng ta ĐĂNG KÝ cho PayPal biết:
     //     Khi người dùng bấm nút (và PayPal cần tạo đơn PayPal) → gọi createOrder
     //     Khi người dùng thanh toán xong và PayPal approve → gọi onApprove
+
+    // UI (khi nhấn nút PayPal Button)
+    //    │
+    //    ▼
+    // PayPal SDK gọi createOrder()
+    //    │
+    //    ▼
+    // Server /api/paypal/create-order
+    //    │
+    //    ▼
+    // PayPal mở popup thanh toán
+    //    │
+    // User đăng nhập PayPal + complete purchase
+    //    │
+    //    ▼
+    // PayPal SDK gọi onApprove()
+    //    │
+    //    ▼
+    // Server /api/paypal/capture
+    //    │
+    //    ▼
+    // UI cập nhật: setPaidItems(), clear(), toast.success()
+
+    // nếu nhấn vào nút Paypal => mở cửa sổ, sau đó không nhấn Complete Purchase và tắt cửa sổ. Thì chuyện gì xảy ra?
+    // Về mặt nghiệp vụ: Trong thanh toán online, trường hợp này gọi là:
+    // Abandoned Payment / Abandoned Checkout (Thanh toán bị bỏ dở)
     const buttons = window.paypal?.Buttons({
       style: { layout: "vertical", color: "gold", shape: "rect", label: "pay" },
+      // Khi bấm nút PayPal: PayPal SDK sẽ gọi hàm createOrder().
+      // Tóm gọn: gọi phương thức post https://api-m.sandbox.paypal.com/v2/checkout/orders
       createOrder: async () => {
+        // setIsProcessing(true): UI chuyển sang trạng thái đang xử lý
+        // Khóa nút, hiện loading, không cho bấm nhiều lần.
         setIsProcessing(true);
-        const response = await fetch("/api/paypal/create-order", {
+
+        // Gửi request lên server
+        // checkoutItems: Danh sách { id, quantity } từ giỏ hàng
+        // email: Email guest nếu chưa đăng nhập
+        const response: Response = await fetch("/api/paypal/create-order", {
           method: "POST",
+          //headers như bên dưới để thông báo cho server biết rằng chúng ta gửi dữ liệu JSON
           headers: { "Content-Type": "application/json" },
+          // stringify: chuyển object JS thành chuỗi text JSON. VD: { name: "Dat", age: 30 } => '{"name":"Dat","age":30}'
+          // HTTP sẽ gửi chuỗi này tới server.
+          // trong trường hợp này là:
+          // Chúng ta gửi snapshot giỏ hàng + email người mua cho server để:
+          // Tạo Order
+          // Gọi PayPal API
+          // Lưu DB
+          // Trả lại orderId
           body: JSON.stringify({ items: checkoutItems, email: orderEmail }),
         });
 
+        // Nhận lại orderId (data.id) từ server
+        // PayPal SDK sẽ dùng id này để:
+        //    Mở popup PayPal
+        //    Gắn order PayPal vào giao dịch của user
         const data = await response.json();
         if (!response.ok || !data?.id) {
           setIsProcessing(false);
@@ -208,8 +298,109 @@ export default function CheckoutPage() {
           throw new Error("Unable to create PayPal order");
         }
 
+        // không phải trả về cho component React của bạn
+        // Mà nó trả về cho PayPal SDK nội bộ
+
+        //4. PayPal SDK dùng data.id để làm gì?
+        // PayPal SDK cần PayPal Order ID để:
+        //    Gắn giao dịch vào tài khoản PayPal
+        //    Mở popup đúng đơn hàng
+        //    Biết phải thu bao nhiêu tiền
+        //    Sau khi user bấm “Complete Purchase” → SDK gửi orderID cho onApprove
+        // Bắt buộc phải return theo chuẩn PayPal:
+        // createOrder: () => {
+        //   return "PAYPAL_ORDER_ID";
+        // }
         return data.id as string;
+
+        // return data.id
+        //      │
+        //      ▼
+        // PayPal SDK giữ orderId trong bộ nhớ nội bộ
+        //      │
+        //      ▼
+        // User đăng nhập PayPal
+        //      │
+        //      ▼
+        // User bấm "Complete Purchase"
+        //      │
+        //      ▼
+        // PayPal server xác nhận thanh toán
+        //      │
+        //      ▼
+        // PayPal SDK gọi lại onApprove()
       },
+      // data trong onApprove đến từ đâu?
+      // Khi user bấm "Complete Purchase" trong popup PayPal
+      // PayPal server xác nhận thanh toán thành công
+      // PayPal SDK gọi onApprove(data)
+      // với data = { orderID: "PAYPAL_ORDER_ID", ... }
+      // orderID này chính là id mà chúng ta return trong createOrder
+      // PayPal SDK giữ nó trong bộ nhớ nội bộ suốt quá trình thanh toán.
+      // Vì vậy chúng ta không cần tự lưu nó ở đâu cả.
+      // orderID này dùng để gọi API capture trên server.
+      // Quy trình:
+      //CLIENT (Browser)
+      // │
+      // │ nhấn nút PayPal
+      // ▼
+      // createOrder()
+      // │
+      // │ fetch tới api/paypal/create-order
+      // ▼
+      // SERVER
+      // │
+      // │ tiếp tục fetch PayPal API
+      // ▼
+      // PAYPAL SERVER
+      // │
+      // │ return id = "5O190127TN364715T"
+      // ▼
+      // SERVER
+      // │
+      // │ return { id }
+      // ▼
+      // CLIENT
+      // │
+      // │ return id
+      // ▼
+      // PAYPAL SDK
+      // │ (giữ orderId)
+      // │
+      // │ popup thanh toán
+      // ▼
+      // User bấm "Complete Purchase"
+      //     │
+      //     ▼
+      // PayPal server xác nhận thanh toán
+      //     │
+      //     ▼
+      // PayPal SDK gọi onApprove({ orderID })
+      //     │
+      //     ▼
+      // onApprove gọi /api/paypal/capture với orderID
+      //     │
+      //     ▼
+      // Server gọi PayPal API capture
+      //     │
+      //     ▼
+      // PayPal trả về chi tiết đơn hàng đã thanh toán
+      //     │
+      //     ▼
+      // Server lưu đơn hàng vào DB, trả về chi tiết order cho UI
+      //     │
+      //     ▼
+      // UI cập nhật trạng thái thanh toán thành công
+      //     clear() cart
+      //     hiển thị thông báo thành công
+      //    │
+      //    ▼
+      // UI hiển thị đơn hàng đã thanh toán
+      //    (lấy từ paidItems)
+      //     └─ không phụ thuộc cart nữa
+      //         (vì cart đã clear)
+      //         (paidItems là snapshot lúc thanh toán)
+      //        (giúp tránh lỗi nếu user thay đổi cart sau thanh toán)
       onApprove: async (data) => {
         const response = await fetch("/api/paypal/capture", {
           method: "POST",
@@ -237,7 +428,7 @@ export default function CheckoutPage() {
 
         setPaidItems(orderItems);
         clear();
-        toast.success("Thanh toan PayPal sandbox thanh cong!");
+        toast.success("Thanh toán PayPal (sandbox) thành công!");
         setIsProcessing(false);
       },
       onError: () => {
@@ -272,8 +463,22 @@ export default function CheckoutPage() {
       toast.error("Không thể tải nút PayPal sandbox.");
     });
 
+    // hàm bên trong return là hàm cleanup của useEffect
+    // Hàm trong return sẽ chạy khi:
+    // Component unmount (bị xóa khỏi DOM)
+    // Hoặc trước khi effect chạy lại lần tiếp theo (khi dependency thay đổi)
+    // Nếu hàm cleanup này trống:
+    //    Nút PayPal nhân bản
+    //    Popup PayPal mở sai đơn hàng
+    //    Event onApprove gọi nhiều lần
+    //    RAM tăng dần
+    //    UI loading bị kẹt
     return () => {
       setIsProcessing(false);
+      // void buttons.close();: // Nếu không có void:
+      // TypeScript sẽ cảnh báo:
+      // cleanup function must not return a Promise (cleanup function không được phép return Promise)
+      // Cleanup chỉ được return void
       void buttons.close();
     };
   }, [
@@ -393,13 +598,16 @@ export default function CheckoutPage() {
                   <label className="text-sm font-semibold text-slate-900">
                     Nhập email để nhận hóa đơn (*)
                   </label>
+
                   <input
                     type="email"
+                    // khi nhấn vào input thì dữ liệu được gán vào event.target.value
                     value={guestEmail}
                     onChange={(event) => setGuestEmail(event.target.value)}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                     placeholder="you@example.com"
                   />
+
                   {!isValidEmail ? (
                     <p className="text-xs text-red-600">
                       Vui lòng nhập email hợp lệ để thanh toán.
@@ -408,6 +616,16 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
+              {/* Khi nào nút paypal hiện, khi nào không?
+              // không hiện khi:
+              //      chưa cấu hình PayPal
+              //      load PayPal SDK lỗi
+              //      PayPal SDK chưa load xong
+              //      đã thanh toán rồi
+              //      không có sản phẩm trong giỏ hàng
+              //      là guest mà chưa nhập email hợp lệ
+              // hiện khi: các điều kiện trên đều hợp lệ
+              */}
               {paypalClientId ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <div ref={paypalButtonsRef} />
@@ -416,11 +634,13 @@ export default function CheckoutPage() {
                       Nhập email để hiện nút PayPal.
                     </p>
                   ) : null}
+
                   {isProcessing ? (
                     <p className="mt-2 text-xs text-gray-500">
                       Đang xử lý thanh toán PayPal sandbox...
                     </p>
                   ) : null}
+
                   {paypalScriptError ? (
                     <p className="mt-2 text-xs text-red-600">
                       {paypalScriptError}
