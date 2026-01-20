@@ -31,7 +31,7 @@
 //    ├─ Trước thanh toán: hiển thị items từ cart
 //    └─ Sau thanh toán: hiển thị paidItems
 
-// *** Key idea ***
+// ****** Key idea ******
 // cart items ≠ order items
 // Sau khi trả tiền, UI không phụ thuộc cart nữa.
 

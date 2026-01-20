@@ -322,25 +322,44 @@ export async function buildOrderItems(
 
 // ORDER BY o."createdAt" DESC
 // LIMIT 30;
+const orderInclude = {
+  user: { select: { id: true, email: true, name: true } },
+  items: {
+    include: {
+      product: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          image: true,
+          price: true,
+        },
+      },
+    },
+  },
+};
+
 export async function getRecentOrders(limit = 30) {
   return prisma.order.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
-    include: {
-      user: { select: { id: true, email: true, name: true } },
-      items: {
-        include: {
-          product: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              image: true,
-              price: true,
-            },
-          },
-        },
-      },
-    },
+    include: orderInclude,
   });
+}
+
+// hàm getOrdersPage: lấy danh sách đơn hàng theo từng trang (pagination)
+export async function getOrdersPage(page = 1, pageSize = 10) {
+  const take = Math.max(1, pageSize);
+  const total = await prisma.order.count();
+  const totalPages = Math.max(1, Math.ceil(total / take)); // làm tròn lên: ví dụ: 25 đơn, mỗi trang 10 đơn → 3 trang, nếu nhỏ hơn 1 thì vẫn là 1 trang, Math.max: đề phòng trường hợp total = 0
+  const currentPage = Math.min(Math.max(page, 1), totalPages); // currentPage: từ 1 đến totalPages
+
+  const orders = await prisma.order.findMany({
+    orderBy: { createdAt: "desc" }, // sắp xếp đơn hàng theo ngày tạo, mới nhất hiển thị trước.
+    skip: (currentPage - 1) * take,
+    take,
+    include: orderInclude,
+  });
+
+  return { orders, total, totalPages, pageSize: take, currentPage };
 }
