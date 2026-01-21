@@ -22,9 +22,6 @@ export default function NavBar() {
     { label: "Best Sellers", href: "/best-sellers" },
     { label: "New Releases", href: "/new-releases" },
   ];
-  const authedItems: NavItem[] = isAuthenticated
-    ? [{ label: "Đơn hàng của tôi", href: "/orders" }]
-    : [];
   const adminItems: NavItem[] = [
     { label: "Quản lý sản phẩm", href: "/admin/products" },
     { label: "Quản lý đơn hàng", href: "/admin/orders" },
@@ -32,7 +29,6 @@ export default function NavBar() {
   ];
   const items: NavItem[] = [
     ...baseItems,
-    ...authedItems,
     ...(isAdmin ? adminItems : []),
   ];
 

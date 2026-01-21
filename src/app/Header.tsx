@@ -1,38 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import NavBar from "@/components/NavBar";
 import CartDropdown from "@/components/CartDropdown";
+import UserDropdown from "@/components/UserDropdown";
 import { Session } from "next-auth";
 
 export default function Header() {
-  const { data: session }: { data: Session | null }  = useSession();
+  const { data: session }: { data: Session | null } = useSession();
 
   return (
     <header className="relative z-50 w-full bg-white shadow-md">
       <div className="py-4 px-8">
+        {/* 
+          khi viết <div class="flex justify-between"> thì nó chia đều hai bên
+          ┌─────────────────────────────── HEADER ───────────────────────────────┐
+          │ Bên trái                                                  Bên phải   │
+          │ Logo / Menu                                             Cart | User  │
+          └──────────────────────────────────────────────────────────────────────┘
+        */}
         <nav className="flex justify-between items-center">
-          <Link href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
+          <Link
+            href="/"
+            className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors"
+          >
             Software Store
           </Link>
           <div className="flex items-center space-x-4">
             <CartDropdown />
             {session ? (
-              <>
-                <div className="text-sm text-gray-500 text-right">
-                  {session.user?.name && <div>{session.user.name}</div>}
-                  <div>{session.user?.email}</div>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                >
-                  Sign Out
-                </button>
-              </>
+              <UserDropdown session={session} />
             ) : (
-              <Link href="/login" className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+              <Link
+                href="/login"
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+              >
                 Sign In
               </Link>
             )}
@@ -41,7 +44,7 @@ export default function Header() {
       </div>
 
       {/* Nav bar tách riêng */}
-      <NavBar/>
+      <NavBar />
     </header>
   );
 }
