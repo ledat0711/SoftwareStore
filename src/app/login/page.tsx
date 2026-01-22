@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { FcGoogle } from "react-icons/fc";
-import { FaXTwitter, FaDiscord, FaGithub } from "react-icons/fa6";
 import { MdEmail } from "react-icons/md";
 import { SigninButton } from "@/components/auth/signin-button";
 import { signIn, useSession } from "next-auth/react";
@@ -42,16 +41,6 @@ export default function LoginPage() {
               onClick={() => signIn("google", { callbackUrl: "/" })}
             />
             <SigninButton
-              icon={<FaGithub size={20} />}
-              text="Sign in with Github"
-              onClick={() => signIn("github", { callbackUrl: "/" })}
-            />
-            <SigninButton
-              icon={<FaDiscord size={20} className="text-indigo-500" />}
-              text="Sign in with Discord"
-              onClick={() => signIn("discord", { callbackUrl: "/" })}
-            />
-            <SigninButton
               icon={<MdEmail size={22} className="text-gray-500" />}
               text="Sign in by your account"
               onClick={() => router.push("/credentials")}
@@ -59,7 +48,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
-            New to Trading Software?{" "}
+            New to Software Store?{" "}
             <a
               href="/register"
               className="text-pink-600 dark:text-pink-400 font-medium hover:underline"
