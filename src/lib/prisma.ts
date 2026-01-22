@@ -13,7 +13,7 @@
 // export default prisma
 
 // ******* LOCAL *******
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, UserStatus } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import { slugify } from "@/lib/helpers";
 import { Product } from "@/types/product";
@@ -41,9 +41,19 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export default prisma;
 
 // -------- User helpers --------
+// SELECT *
+// FROM "User"
+// WHERE email = "test@example.com"
+// LIMIT 1;
 export async function getUserByEmail(email: string) {
   return prisma.user.findUnique({
     where: { email: String(email) },
+  });
+}
+
+export async function getUserById(id: string) {
+  return prisma.user.findUnique({
+    where: { id: String(id) },
   });
 }
 
@@ -51,12 +61,48 @@ export type CreateUserPayload = {
   name: string | null;
   email: string;
   password: string | null;
+  status?: UserStatus;
   image?: string | null;
+};
+
+const userSummarySelect = {
+  id: true,
+  name: true,
+  email: true,
+  status: true,
+  createdAt: true,
+  roles: {
+    select: {
+      role: true,
+    },
+  },
 };
 
 export async function createUser(payload: CreateUserPayload) {
   return prisma.user.create({
     data: payload,
+  });
+}
+
+export async function listUsers() {
+  return prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: userSummarySelect,
+  });
+}
+
+export async function updateUserStatus(id: string, status: UserStatus) {
+  return prisma.user.update({
+    where: { id },
+    data: { status },
+    select: userSummarySelect,
+  });
+}
+
+export async function deleteUserById(id: string) {
+  return prisma.user.delete({
+    where: { id },
+    select: userSummarySelect,
   });
 }
 
@@ -69,7 +115,7 @@ export async function getProductBySlug(slug: string) {
 
 export async function getRelatedProducts(
   productId: string,
-  category?: string | null
+  category?: string | null,
 ) {
   return prisma.product.findMany({
     where: {
@@ -211,7 +257,7 @@ export async function getLatestVisibleProducts(limit = 4) {
 
 export async function getFilteredVisibleProducts(
   categoryFilter: string[] = [],
-  platformFilter: string[] = []
+  platformFilter: string[] = [],
 ) {
   return prisma.product.findMany({
     where: {
@@ -228,21 +274,21 @@ const MAX_SEARCH_LIMIT = 50;
 
 function normalizeSearchLimit(
   rawLimit: number | string | null | undefined,
-  fallback = DEFAULT_SEARCH_LIMIT
+  fallback = DEFAULT_SEARCH_LIMIT,
 ) {
   const parsedLimit =
     typeof rawLimit === "number"
       ? rawLimit
       : rawLimit
-      ? Number(rawLimit)
-      : fallback;
+        ? Number(rawLimit)
+        : fallback;
   if (!Number.isFinite(parsedLimit)) return fallback;
   return Math.min(Math.max(parsedLimit, 1), MAX_SEARCH_LIMIT);
 }
 
 export async function searchVisibleProductsWithLimit(
   query: string,
-  rawLimit?: number | string | null
+  rawLimit?: number | string | null,
 ) {
   const term: string = query.trim();
   if (!term) return [];
@@ -253,7 +299,7 @@ export async function searchVisibleProductsWithLimit(
 
 export async function searchVisibleProductsAction(
   query: string,
-  limit = DEFAULT_SEARCH_LIMIT
+  limit = DEFAULT_SEARCH_LIMIT,
 ) {
   "use server";
   return searchVisibleProductsWithLimit(query, limit);

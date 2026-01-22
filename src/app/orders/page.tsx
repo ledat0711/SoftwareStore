@@ -29,7 +29,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const { orders, total, totalPages, currentPage } = await getUserOrdersPage(
     userId,
     page,
-    PAGE_SIZE
+    PAGE_SIZE,
   );
 
   return (

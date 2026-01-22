@@ -23,6 +23,11 @@ enum Platform {
   Mobile
 }
 
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
 // Prisma có 2 loại field:
 // A. Scalar fields → CÓ cột trong database
 // B. Relation fields → KHÔNG có cột trong database
@@ -54,6 +59,7 @@ model User {
   name          String?
   email         String          @unique
   password      String?
+  status        UserStatus      @default(ACTIVE)
   emailVerified DateTime?
   image         String?
   accounts      Account[]

@@ -8,16 +8,25 @@ import { signIn, SignInResponse } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
+// Form → signIn()
+//      → authorize()
+//      → query DB
+//      → bcrypt.compare
+//      → return user
+//      → NextAuth tạo session/JWT
+//      → router.push("/")
 export default function CredentialsLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const passwordRef: React.RefObject<HTMLInputElement | null> = useRef<HTMLInputElement>(null);
+  const passwordRef: React.RefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const storedEmail: string | null = sessionStorage?.getItem("registeredEmail");
+    const storedEmail: string | null =
+      sessionStorage?.getItem("registeredEmail");
 
     if (storedEmail) {
       setEmail(storedEmail);
@@ -26,7 +35,8 @@ export default function CredentialsLoginPage() {
   }, []);
 
   useEffect(() => {
-    const storedEmail: string | null = sessionStorage?.getItem("registeredEmail");
+    const storedEmail: string | null =
+      sessionStorage?.getItem("registeredEmail");
     if (storedEmail && passwordRef.current) {
       passwordRef.current.focus();
     }
@@ -36,20 +46,58 @@ export default function CredentialsLoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // quan trọng: gọi hàm signIn của next-auth với ProviderId "credentials"
+    // Gửi email + password lên server cho NextAuth xử lý
+    // “Xương sống” thật sự nằm ở auth.config.ts trong đó có đoạn
+    // Credentials({
+    //   async authorize(credentials) {
+    //     ...
+    //   }
+    // })
+    // Luồng thực thi chính với chức năng đăng nhập bằng credentials như sau:
+    // [Login Page]
+    //      │
+    //      │ signIn("credentials")
+    //      ▼
+    // [NextAuth API Route]
+    //      │
+    //      ▼
+    // [Credentials Provider]
+    //      │
+    //      ▼
+    // authorize()
+    //      │
+    //      ├─ 1. Kiểm tra input
+    //      ├─ 2. Tìm user trong database
+    //      ├─ 3. So sánh password (bcrypt)
+    //      ├─ 4. Kiểm tra user có bị BLOCK không
+    //      ├─ 5. Trả về user object
+    //      │
+    //      ▼
+    // [NextAuth tạo session + JWT]
+    //      │
+    //      ▼
+    // Client nhận kết quả → router.push("/")
     const res: SignInResponse = await signIn("credentials", {
       redirect: false,
       email,
       password,
     });
 
-    setLoading(false);
-
     if (res?.error) {
-      setError("Invalid email or password");
+      const errorMessage =
+        res.error === "ACCOUNT_BLOCKED"
+          ? "Your account has been blocked. Please contact support."
+          : "Invalid email or password";
+      setError(errorMessage);
+      setLoading(false);
+      
       return;
     }
 
     router.push("/");
+    setLoading(false);
   };
 
   return (
@@ -84,7 +132,10 @@ export default function CredentialsLoginPage() {
                 Username
               </label>
               <div className="relative">
-                <MdEmail className="absolute left-3 top-3 text-gray-400" size={20} />
+                <MdEmail
+                  className="absolute left-3 top-3 text-gray-400"
+                  size={20}
+                />
                 <input
                   type="username"
                   required
@@ -101,7 +152,10 @@ export default function CredentialsLoginPage() {
                 Password
               </label>
               <div className="relative">
-                <MdLock className="absolute left-3 top-3 text-gray-400" size={20} />
+                <MdLock
+                  className="absolute left-3 top-3 text-gray-400"
+                  size={20}
+                />
                 <input
                   ref={passwordRef}
                   type="password"
@@ -114,13 +168,17 @@ export default function CredentialsLoginPage() {
               </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && (
+              <p className="text-red-500 text-sm text-center">{error}</p>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className={`w-full py-2.5 font-medium rounded-lg text-white transition ${
-                loading ? "bg-pink-400 cursor-not-allowed" : "bg-pink-600 hover:bg-pink-700"
+                loading
+                  ? "bg-pink-400 cursor-not-allowed"
+                  : "bg-pink-600 hover:bg-pink-700"
               }`}
             >
               {loading ? "Signing in..." : "Sign in"}

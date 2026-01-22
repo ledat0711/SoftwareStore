@@ -30,7 +30,7 @@ export default function UserDropdown({ session }: UserDropdownProps) {
 
   const initials = useMemo(
     () => buildInitials(session.user?.name, session.user?.email),
-    [session.user?.email, session.user?.name]
+    [session.user?.email, session.user?.name],
   );
 
   useEffect(() => {
@@ -82,6 +82,9 @@ export default function UserDropdown({ session }: UserDropdownProps) {
         >
           <path
             fill="currentColor"
+            // d="..." = chuỗi lệnh vẽ đường
+            // Nó vẽ ra hình chevron down (▼)
+            // Chúng ta không cần nhớ hay tự viết cái này → Thường copy từ HeroIcons, Lucide, SVG repo
             d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 0 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z"
           />
         </svg>
@@ -105,7 +108,35 @@ export default function UserDropdown({ session }: UserDropdownProps) {
             </div>
           </div>
 
-          <div className="px-2 py-2">
+          <div className="px-2 py-2 space-y-1">
+            {session.user?.role === "ADMIN" && (
+              <Link
+                href="/admin/users"
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-gray-50"
+                onClick={() => setIsOpen(false)}
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M5 7h14M5 12h14M5 17h14" />
+                  </svg>
+                </span>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Quản lý người dùng
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    Xem và cập nhật trạng thái tài khoản
+                  </p>
+                </div>
+              </Link>
+            )}
             <Link
               href="/orders"
               className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-gray-50"
