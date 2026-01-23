@@ -48,6 +48,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createOrderFromCart } from "@/lib/orders";
 import { capturePaypalOrder } from "@/lib/paypal";
+import { orderService } from "@/lib/services/orderService";
 
 type IncomingItem = { id?: string; quantity?: number };
 
@@ -122,6 +123,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   // nhận order, capture trả về cho client
   try {
     const order = await createOrderFromCart(userId, items, emailToUse);
+
+    // Send transactional email after successful capture (server-side, idempotent)
+    // Do not block the main response if email fails; errors are logged.
+    try {
+      await orderService.markPaid(order.id);
+    } catch (emailError) {
+      console.error("[paypal-capture] send email failed", emailError);
+    }
+
     return NextResponse.json({ order, capture });
   } catch (error) {
     const message =

@@ -28,6 +28,24 @@ enum UserStatus {
   BLOCKED
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum EmailType {
+  ORDER_SUCCESS
+  ORDER_FAILED
+  CART_ABANDONED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 // Prisma có 2 loại field:
 // A. Scalar fields → CÓ cột trong database
 // B. Relation fields → KHÔNG có cột trong database
@@ -68,6 +86,7 @@ model User {
   cart          Cart?
   roles         RoleUser[]   // 1-n với bảng trung gian
   orders        Order[]
+  emailLogs EmailLog[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
 
@@ -151,12 +170,17 @@ model Authenticator {
 // bảng cart và product có mối quan hệ n-n
 // nên cần bảng trung gian CartItem
 model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                   String     @id @default(cuid())
+  userId               String?    @unique
+  user                 User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email                String?
+  checkedOut           Boolean    @default(false)
+  checkedOutAt         DateTime?
+  abandonedEmailSentAt DateTime?
+  items                CartItem[]
+  emailLogs            EmailLog[]
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 }
 
 model CartItem {
@@ -176,11 +200,13 @@ model Order {
   id        String      @id @default(cuid())
   userId    String?
   user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  code String @unique
+  code      String      @unique
   total     Float
+  email     String?
   guestEmail String?
-  status    String      @default("PAID")
+  status    OrderStatus @default(PAID)
   items     OrderItem[]
+  emailLogs EmailLog[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 }
@@ -193,4 +219,26 @@ model OrderItem {
   price     Float
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+model EmailLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  orderId    String?
+  cartId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order      Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  cart       Cart?       @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  type       EmailType
+  status     EmailStatus @default(PENDING)
+  retryCount Int         @default(0)
+  lastError  String?
+  uniqueKey  String      @unique
+  createdAt  DateTime    @default(now())
+  sentAt     DateTime?
+  updatedAt  DateTime    @updatedAt
+
+  @@index([orderId])
+  @@index([cartId])
+  @@index([userId])
 }
