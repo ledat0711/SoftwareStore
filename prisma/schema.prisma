@@ -46,6 +46,7 @@ model Product {
   platform    String?           // PC/Mobile/All...
 
   hidden      Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

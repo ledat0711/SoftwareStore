@@ -78,21 +78,24 @@ export default function CredentialsLoginPage() {
     // [NextAuth tạo session + JWT]
     //      │
     //      ▼
-    // Client nhận kết quả → router.push("/")
-    const res: SignInResponse = await signIn("credentials", {
+    // Client nhận response → router.push("/")
+    const response: SignInResponse = await signIn("credentials", {
+      // redirect: false:
+      //     NextAuth không redirect
+      //     Nó trả về cho bạn 1 object SignInResponse
       redirect: false,
       email,
       password,
     });
 
-    if (res?.error) {
+    if (response?.error) {
       const errorMessage =
-        res.error === "ACCOUNT_BLOCKED"
+        response.error === "ACCOUNT_BLOCKED"
           ? "Your account has been blocked. Please contact support."
           : "Invalid email or password";
       setError(errorMessage);
       setLoading(false);
-      
+
       return;
     }
 

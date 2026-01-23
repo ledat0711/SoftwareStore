@@ -8,12 +8,12 @@ import {
   upsertProductFromSeed,
 } from "../src/lib/prisma";
 
-type SeedProduct = Omit<Product, "category" | "platform">;
+type SeedProduct = Omit<Product, "isDeleted">;
 
 /* -------------------------------------------------------
    1. Tạo ra mảng danh sách sản phẩm mẫu
 ------------------------------------------------------- */
-const allProducts: Product[] = [
+const allProducts: SeedProduct[] = [
   // ======= SOFTWARE STORE PRODUCTS ======= //
   {
     id: "win11-pro",
@@ -134,6 +134,21 @@ const allProducts: Product[] = [
     hidden: false,
   },
   {
+    id: "minecraft",
+    title: "Minecraft",
+    slug: "minecraft",
+    description: "Trò chơi phiêu lưu.",
+    image:
+      "https://store-images.s-microsoft.com/image/apps.808.14492077886571533.be42f4bd-887b-4430-8ed0-622341b4d2b0.c8274c53-105e-478b-9f4b-41b8088210a3?q=90&w=177&h=265",
+    price: 25,
+    rating: 4.8,
+    tag: "Trò chơi",
+    badge: "Popular",
+    category: "Games",
+    platform: "Mobile",
+    hidden: false,
+  },
+  {
     id: "notion-plus",
     title: "Notion Plus",
     slug: "notion-plus",
@@ -160,21 +175,6 @@ const allProducts: Product[] = [
     badge: "Popular",
     category: "Apps",
     platform: "PC",
-    hidden: false,
-  },
-  {
-    id: "minecraft",
-    title: "Minecraft",
-    slug: "minecraft",
-    description: "Trò chơi phiêu lưu.",
-    image:
-      "https://store-images.s-microsoft.com/image/apps.808.14492077886571533.be42f4bd-887b-4430-8ed0-622341b4d2b0.c8274c53-105e-478b-9f4b-41b8088210a3?q=90&w=177&h=265",
-    price: 25,
-    rating: 4.8,
-    tag: "Trò chơi",
-    badge: "Popular",
-    category: "Games",
-    platform: "Mobile",
     hidden: false,
   },
 ];

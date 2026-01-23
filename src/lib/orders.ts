@@ -88,7 +88,7 @@ export async function createOrderFromCart(
           items: {
             include: {
               product: {
-                select: { id: true, slug: true, title: true, image: true },
+                select: { id: true, slug: true, title: true, image: true, isDeleted: true},
               },
             },
           },
@@ -167,7 +167,7 @@ export async function buildOrderItems(
   // );
   // 'id1', 'id2', 'id3' là các phần tử trong mảng productIds
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
+    where: { id: { in: productIds }, isDeleted: false },
     select: { id: true, title: true, slug: true, image: true, price: true },
   });
 
@@ -333,6 +333,8 @@ const orderInclude = {
           slug: true,
           image: true,
           price: true,
+          isDeleted: true,
+          hidden: true,
         },
       },
     },

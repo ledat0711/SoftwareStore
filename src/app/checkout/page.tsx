@@ -51,6 +51,7 @@ type CheckoutItem = {
   image: string | null;
   quantity: number;
   price: number;
+  isDeleted?: boolean;
 };
 
 type OrderItemResponse = {
@@ -59,6 +60,7 @@ type OrderItemResponse = {
     slug?: string;
     title?: string;
     image?: string | null;
+    isDeleted?: boolean; 
   };
   quantity?: number;
   price?: number;
@@ -134,6 +136,7 @@ export default function CheckoutPage() {
         image: item.product?.image ?? null,
         quantity: item.quantity ?? 1,
         price: item.price ?? 0,
+        isDeleted: item.product?.isDeleted ?? false,
       }))
       .filter((item) => item.id);
 
@@ -419,7 +422,7 @@ export default function CheckoutPage() {
           throw new Error(result?.error ?? "Capture failed");
         }
 
-        const orderItems = mapOrderItems(result?.order?.items);
+        const orderItems: CheckoutItem[] = mapOrderItems(result?.order?.items);
         if (!orderItems.length) {
           setIsProcessing(false);
           toast.error("Don hang khong hop le.");

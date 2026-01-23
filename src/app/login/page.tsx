@@ -26,7 +26,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-[calc(100vh-120px)] flex items-start justify-center pt-16 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
       <div className="max-w-lg w-full flex flex-col bg-white dark:bg-gray-800 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300">
-        {/* Right section - Form */}
         <div className="w-full p-10 flex flex-col justify-center transition-colors duration-300">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-semibold text-pink-600 dark:text-pink-400">
@@ -38,6 +37,11 @@ export default function LoginPage() {
             <SigninButton
               icon={<FcGoogle size={22} />}
               text="Sign in with Google"
+              // "google" → tên provider (đăng nhập bằng Google)
+              // { callbackUrl: "/" } → URL mà user sẽ được chuyển tới sau khi đăng nhập thành công
+              // lúc nhấn vào button sign in google: NextAuth gọi endpoint: /api/auth/signin/google
+              // Endpoint này không login ngay
+              // Nó redirect trình duyệt sang Google OAuth
               onClick={() => signIn("google", { callbackUrl: "/" })}
             />
             <SigninButton

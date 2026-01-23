@@ -86,9 +86,23 @@ export default async function AdminOrdersPage({
                             <div className="h-10 w-10 rounded-lg bg-gray-100" />
                           )}
                           <div>
-                            <p className="font-semibold text-slate-900">
-                              {item.product?.title ?? "Sản phẩm"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-slate-900">
+                                {item.product?.title ?? "Sản phẩm"}
+                              </p>
+
+                              {!item.product?.isDeleted && item.product?.hidden && (
+                                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                                  Đã ẩn
+                                </span>
+                              )}
+
+                              {item.product?.isDeleted && (
+                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                  Đã xóa
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-500">
                               Số lượng: {item.quantity}
                             </p>

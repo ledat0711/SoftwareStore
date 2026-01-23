@@ -13,6 +13,7 @@ export class Product {
   category: string | null = DEFAULT_CATEGORY;
   platform: string | null = DEFAULT_PLATFORM;
   hidden: boolean = false;
+  isDeleted: boolean = false;
 
   constructor(init?: Partial<Product>) {
     Object.assign(this, init);

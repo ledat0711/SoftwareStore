@@ -20,8 +20,8 @@ async function ensureCartId(userId: string) {
 }
 
 async function ensureProductExists(productId: string) {
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
+  const product = await prisma.product.findFirst({
+    where: { id: productId, isDeleted: false },
     select: { id: true },
   });
   if (!product) {
@@ -59,6 +59,7 @@ export async function getCartItemsForUser(userId: string): Promise<CartItem[]> {
     where: { userId },
     include: {
       items: {
+        where: { product: { isDeleted: false } },
         orderBy: { updatedAt: "desc" },
         include: {
           product: {

@@ -19,9 +19,10 @@ export default function UsersTable({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
+  // totalActive để hiện thị: Đang hoạt động: "totalActive" / 5
   const totalActive = useMemo(
     () => users.filter((user) => user.status === "ACTIVE").length,
-    [users]
+    [users],
   );
 
   async function handleStatusChange(userId: string, action: UserAction) {
@@ -33,7 +34,7 @@ export default function UsersTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      
+
       const data: { user?: AdminUserDto; error?: string } = await res
         .json()
         .catch(() => ({}));
@@ -42,7 +43,7 @@ export default function UsersTable({
         setError(data.error || "Không thể cập nhật trạng thái người dùng.");
       } else {
         setUsers((prev) =>
-          prev.map((user) => (user.id === data.user?.id ? data.user : user))
+          prev.map((user) => (user.id === data.user?.id ? data.user : user)),
         );
       }
     } catch (err) {
@@ -54,7 +55,7 @@ export default function UsersTable({
 
   async function handleDelete(userId: string) {
     const confirmed = window.confirm(
-      "Xóa tài khoản này? Hành động không thể hoàn tác."
+      "Xóa tài khoản này? Hành động không thể hoàn tác.",
     );
     if (!confirmed) return;
 
@@ -98,8 +99,11 @@ export default function UsersTable({
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
+          {/* <thead> viết tắt của Table Head → Dùng để chứa phần tiêu đề của bảng */}
           <thead className="bg-gray-50">
+            {/* <tr> viết tắt của Table Row → Dùng để tạo 1 hàng trong bảng */}
             <tr>
+              {/* <th> viết tắt của Table Header → Dùng để tạo ô tiêu đề trong bảng */}
               <th className="px-4 py-3 text-left font-semibold text-gray-700">
                 Người dùng
               </th>
@@ -123,10 +127,7 @@ export default function UsersTable({
           <tbody className="divide-y divide-gray-100 bg-white">
             {users.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-6 text-center text-gray-500"
-                >
+                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                   Chưa có tài khoản nào.
                 </td>
               </tr>
@@ -163,14 +164,6 @@ export default function UsersTable({
                           className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {user.status === "ACTIVE" ? "Khóa" : "Kích hoạt"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(user.id)}
-                          disabled={isBusy || isSelf}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Xóa
                         </button>
                       </div>
                       {isSelf && (

@@ -108,8 +108,8 @@ export async function deleteUserById(id: string) {
 
 // -------- Product helpers --------
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({
-    where: { slug },
+  return prisma.product.findFirst({
+    where: { slug, isDeleted: false },
   });
 }
 
@@ -120,6 +120,7 @@ export async function getRelatedProducts(
   return prisma.product.findMany({
     where: {
       category: category ?? undefined,
+      isDeleted: false,
       NOT: { id: productId },
     },
     take: 4,
@@ -127,7 +128,7 @@ export async function getRelatedProducts(
 }
 
 // -------- Product actions --------
-export type ProductForm = Omit<Product, "id">;
+export type ProductForm = Omit<Product, "id" | "isDeleted">;
 
 // Tạo sản phẩm mới trong database, nhưng nếu payload có id thì bỏ qua id
 export async function createProductAction(payload: ProductForm) {
@@ -193,12 +194,19 @@ export async function updateProductAction(id: string, payload: ProductForm) {
 
 export async function deleteProductAction(id: string) {
   "use server";
-  await prisma.product.delete({ where: { id } });
+  await prisma.product.update({
+    where: { id },
+    data: { isDeleted: true },
+  });
   return true;
 }
 
-export async function toggleHiddenAction(id: string, hidden: boolean) {
+export async function toggleHiddenAction(payload: {
+  id: string;
+  hidden: boolean;
+}) {
   "use server";
+  const { id, hidden } = payload;
   return prisma.product.update({ where: { id }, data: { hidden } });
 }
 
@@ -214,19 +222,21 @@ export async function disconnectPrisma() {
 
 export type SeedProductPayload = Omit<
   Product,
-  "slug" | "hidden" | "badge" | "category" | "platform"
+  "slug" | "hidden" | "badge" | "category" | "platform" | "isDeleted"
 > & {
   slug?: Product["slug"] | null;
   hidden?: Product["hidden"];
   badge?: Product["badge"];
   category?: Product["category"];
   platform?: Product["platform"];
+  isDeleted?: Product["isDeleted"];
 };
 
 export async function upsertProductFromSeed(payload: SeedProductPayload) {
   const slug: string = payload.slug || slugify(payload.title);
   const badge: string | null = payload.badge ?? null;
   const hidden: boolean = payload.hidden ?? false;
+  const isDeleted: boolean = payload.isDeleted ?? false;
 
   return prisma.product.upsert({
     where: { slug },
@@ -235,6 +245,7 @@ export async function upsertProductFromSeed(payload: SeedProductPayload) {
       slug,
       badge,
       hidden,
+      isDeleted,
       category: payload.category ?? null,
       platform: payload.platform ?? null,
     },
@@ -244,12 +255,15 @@ export async function upsertProductFromSeed(payload: SeedProductPayload) {
 
 export async function getAllProducts() {
   "use server";
-  return prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.product.findMany({
+    where: { isDeleted: false },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function getLatestVisibleProducts(limit = 4) {
   return prisma.product.findMany({
-    where: { hidden: false },
+    where: { hidden: false, isDeleted: false },
     take: limit,
     orderBy: { createdAt: "desc" },
   });
@@ -262,6 +276,7 @@ export async function getFilteredVisibleProducts(
   return prisma.product.findMany({
     where: {
       hidden: false,
+      isDeleted: false,
       category: categoryFilter.length ? { in: categoryFilter } : undefined,
       platform: platformFilter.length ? { in: platformFilter } : undefined,
     },
@@ -312,6 +327,7 @@ export async function searchVisibleProducts(query: string, limit = 12) {
   return prisma.product.findMany({
     where: {
       hidden: false,
+      isDeleted: false,
       OR: [
         { title: { contains: term, mode: "insensitive" } },
         { description: { contains: term, mode: "insensitive" } },
