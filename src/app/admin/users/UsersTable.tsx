@@ -168,7 +168,7 @@ export default function UsersTable({
                       </div>
                       {isSelf && (
                         <p className="mt-1 text-right text-[11px] text-gray-400">
-                          Không thể tự khóa hoặc xóa tài khoản của bạn.
+                          Không thể tự khóa tài khoản của bạn.
                         </p>
                       )}
                     </td>

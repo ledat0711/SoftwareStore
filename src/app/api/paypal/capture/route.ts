@@ -52,7 +52,7 @@ import { orderService } from "@/lib/services/orderService";
 
 type IncomingItem = { id?: string; quantity?: number };
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: Request) {
   const session = await auth();
   // Nếu có userId → user thật
   // Nếu null → guest
@@ -66,6 +66,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   const rawItems: IncomingItem[] = Array.isArray(body?.items) ? body.items : [];
   const guestEmailRaw =
     typeof body?.email === "string" ? body.email.trim() : "";
+
+  // test thanh toán lỗi
+  // return new Response(
+  //   JSON.stringify({ error: "FORCED_PAYPAL_ERROR_FOR_TESTING" }),
+  //   { status: 500 },
+  // );
 
   // 2. Chuẩn hóa bằng map
   // 3. Lọc dữ liệu hợp lệ bằng filter

@@ -169,6 +169,11 @@ model Authenticator {
 
 // bảng cart và product có mối quan hệ n-n
 // nên cần bảng trung gian CartItem
+// checkedOut	Đã thanh toán chưa
+// updatedAt	Lần cuối cart bị thêm/sửa/xoá item
+// abandonedEmailSentAt	Đã gửi email abandoned chưa
+// email	Email guest
+// userId	Nếu là user đăng nhập
 model Cart {
   id                   String     @id @default(cuid())
   userId               String?    @unique
@@ -221,6 +226,12 @@ model OrderItem {
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
 
+// liên quan việc ghi log email gửi đi
+// ghi log email sau khi gửi email trong các trường hợp: đơn hàng thành công/thất bại, giỏ hàng bị bỏ rơi
+// Nó đảm bảo:
+//    Không gửi trùng
+//    Retry nếu lỗi
+//    Có log để debug
 model EmailLog {
   id         String      @id @default(cuid())
   userId     String?

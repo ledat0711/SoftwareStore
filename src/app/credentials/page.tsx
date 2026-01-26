@@ -104,23 +104,10 @@ export default function CredentialsLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      <div className="max-w-6xl w-full flex flex-col md:flex-row bg-white dark:bg-gray-800 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300">
-        {/* Left section - Illustration */}
-        <div className="hidden md:block md:w-1/2 relative bg-gray-100 dark:bg-gray-700 transition-colors duration-300">
-          <Image
-            src="/login-illustration.png"
-            alt="Login Illustration"
-            fill
-            sizes="50vw"
-            className="object-cover object-center opacity-95 transition-transform duration-500 hover:scale-105"
-            priority
-          />
-        </div>
-
-        {/* Right section - Form */}
-        <div className="w-full md:w-1/2 p-10 flex flex-col justify-center transition-colors duration-300">
-          <div className="mb-8 text-center md:text-left">
+    <div className="relative min-h-screen flex items-start pt-16 justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
+      <div className="max-w-lg w-full flex flex-col md:flex-row bg-white dark:bg-gray-800 shadow-2xl rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+        <div className="w-full p-10 flex flex-col justify-center transition-colors duration-300">
+          <div className="mb-8 text-center md:text-center">
             <h1 className="text-3xl font-extrabold text-gray-800 dark:text-white mb-2">
               Welcome back 👋
             </h1>

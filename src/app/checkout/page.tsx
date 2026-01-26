@@ -43,6 +43,7 @@ import { useSession } from "next-auth/react";
 import { useCart } from "@/components/CartProvider";
 import { useToast } from "@/components/ToastProvider";
 import { currency } from "@/lib/helpers";
+import { handlePaypalErrorAction } from "./actions";
 
 type CheckoutItem = {
   id: string;
@@ -297,7 +298,7 @@ export default function CheckoutPage() {
         const data = await response.json();
         if (!response.ok || !data?.id) {
           setIsProcessing(false);
-          toast.error("Khong the khoi tao thanh toan PayPal.");
+          toast.error("Không thể khởi tạo thanh toán PayPal.");
           throw new Error("Unable to create PayPal order");
         }
 
@@ -418,14 +419,14 @@ export default function CheckoutPage() {
         const result = await response.json();
         if (!response.ok) {
           setIsProcessing(false);
-          toast.error("Khong the luu don hang. Vui long thu lai.");
+          toast.error("Không thể lưu đơn hàng, vui lòng thử lại.");
           throw new Error(result?.error ?? "Capture failed");
         }
 
         const orderItems: CheckoutItem[] = mapOrderItems(result?.order?.items);
         if (!orderItems.length) {
           setIsProcessing(false);
-          toast.error("Don hang khong hop le.");
+          toast.error("Đơn hàng không hợp lệ.");
           return;
         }
 
@@ -434,9 +435,21 @@ export default function CheckoutPage() {
         toast.success("Thanh toán PayPal (sandbox) thành công!");
         setIsProcessing(false);
       },
-      onError: () => {
+      onError: async (err) => {
         setIsProcessing(false);
         toast.error("Paypal sandbox lỗi. Vui lòng thử lại.");
+
+        // Trigger server-side email + logging; do not block UI if it fails.
+        handlePaypalErrorAction({
+          items: checkoutItems,
+          email: orderEmail,
+          paypalOrderId:
+            typeof err === "object" && err !== null && "orderID" in err
+              ? (err as { orderID?: string }).orderID
+              : undefined,
+        }).catch((actionError) => {
+          console.error("[checkout:onError] server action failed", actionError);
+        });
       },
       onCancel: () => {
         setIsProcessing(false);

@@ -1,3 +1,4 @@
+import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // id và quantity không có optional vì đã validate ở bước trước
@@ -48,7 +49,8 @@ function clampQuantity(value: unknown, fallback = 1) {
 export async function createOrderFromCart(
   userId: string | null,
   items: OrderItemInput[],
-  guestEmail?: string | null
+  guestEmail?: string | null,
+  status: OrderStatus = OrderStatus.PAID
 ) {
   const { orderItems, totalMoney } = await buildOrderItems(items);
 
@@ -78,7 +80,7 @@ export async function createOrderFromCart(
           userId: userId ?? null,
           guestEmail: guestEmail?.trim() || null,
           total: totalMoney,
-          status: "PAID",
+          status,
           code,
           items: {
             create: orderItems,
