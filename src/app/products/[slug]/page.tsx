@@ -114,11 +114,6 @@ export default async function ProductDetail({
                 <dt className="font-semibold text-slate-900">Category</dt>
                 <dd>{mainProduct.category ?? "Khac"}</dd>
               </div>
-              <div className="flex items-start gap-2"></div>
-              <div className="flex items-start gap-2">
-                <dt className="font-semibold text-slate-900">Bảo hành</dt>
-                <dd>12 tháng</dd>
-              </div>
             </dl>
 
             <div className="flex flex-wrap gap-3">

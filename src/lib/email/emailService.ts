@@ -129,6 +129,7 @@ async function sendWithLogging(payload: SendPayload) {
       await backoff(retryCount);
     }
   }
+
   return { uniqueKey, retryCount };
 }
 
@@ -139,6 +140,7 @@ export const emailService = {
     userId?: string | null;
   }) {
     const subject = `Đơn hàng ${params.order.code} đã thanh toán thành công`;
+    
     return sendWithLogging({
       type: EmailType.ORDER_SUCCESS,
       to: params.to,

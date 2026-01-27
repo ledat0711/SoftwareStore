@@ -19,6 +19,8 @@ function generateOrderCode(date: Date, index: number): string {
   return `ORD-${y}${m}${d}-${String(index).padStart(4, "0")}`;
 }
 
+// Phát hiện xem lỗi vừa xảy ra có phải là lỗi “trùng dữ liệu UNIQUE trong database” hay không
+// Trong Prisma, mỗi loại lỗi DB có một mã code riêng. Code P2002: Unique constraint failed → Vi phạm ràng buộc UNIQUE
 function isUniqueConstraintError(error: unknown): boolean {
   return Boolean(
     error &&

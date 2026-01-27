@@ -106,7 +106,7 @@ const authConfig = {
 
   // NextAuth có 2 mode:
   //     Mode	JWT ở đâu	Session ở đâu
-  //     strategy: "jwt"	Cookie	Tạo từ JWT
+  //     strategy: "jwt" Cookie chứa JWT Session được tạo từ JWT lưu ở browser
   //     strategy: "database"	Cookie chỉ chứa sessionId	Session nằm trong DB
   session: { strategy: "jwt" },
 
