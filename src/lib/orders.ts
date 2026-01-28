@@ -13,10 +13,8 @@ export type BuiltOrderItems = {
 };
 
 function generateOrderCode(date: Date, index: number): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `ORD-${y}${m}${d}-${String(index).padStart(4, "0")}`;
+  const ts = Date.now(); // timestamp milliseconds
+  return `ORD-${ts}-${String(index).padStart(4, "0")}`;
 }
 
 // Phát hiện xem lỗi vừa xảy ra có phải là lỗi “trùng dữ liệu UNIQUE trong database” hay không
@@ -24,9 +22,9 @@ function generateOrderCode(date: Date, index: number): string {
 function isUniqueConstraintError(error: unknown): boolean {
   return Boolean(
     error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error as { code?: string }).code === "P2002"
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002",
   );
 }
 
@@ -52,17 +50,27 @@ export async function createOrderFromCart(
   userId: string | null,
   items: OrderItemInput[],
   guestEmail?: string | null,
-  status: OrderStatus = OrderStatus.PAID
+  status: OrderStatus = OrderStatus.PAID,
 ) {
   const { orderItems, totalMoney } = await buildOrderItems(items);
 
   const now = new Date();
+
+  // startOfDay, endOfDay
+  // tạo ra khoảng thời gian [00:00:00 hôm nay UTC]  ----->  [00:00:00 ngày mai UTC]
+  // Lấy tất cả order trong ngày hôm nay theo UTC
+  // Không bị lệch múi giờ server
+
   const startOfDay = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
+
   const endOfDay = new Date(startOfDay);
   endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
+  // vòng for để phòng trường hợp 2 người mua hàng cùng lúc, tạo đơn cùng mã code
+  // retry tối đa 3 lần
+  // nếu vẫn không được thì ném lỗi
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const dailyCount = await prisma.order.count({
       where: {
@@ -92,7 +100,13 @@ export async function createOrderFromCart(
           items: {
             include: {
               product: {
-                select: { id: true, slug: true, title: true, image: true, isDeleted: true},
+                select: {
+                  id: true,
+                  slug: true,
+                  title: true,
+                  image: true,
+                  isDeleted: true,
+                },
               },
             },
           },
@@ -110,7 +124,7 @@ export async function createOrderFromCart(
 }
 
 export async function buildOrderItems(
-  items: OrderItemInput[]
+  items: OrderItemInput[],
 ): Promise<BuiltOrderItems> {
   // map: chuẩn hóa (duyệt từng phần tử trong mảng và biến đổi thành phần tử mới. Nhận vào item, trả ra object mới)
   // filter: kiểm tra tính hợp lệ
@@ -228,7 +242,7 @@ export async function buildOrderItems(
   // cộng thêm item.price * item.quantity
   const totalMoney = orderItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   // prisma.order.create: Prisma thực hiện 3 việc liên tiếp (trong 1 transaction):
@@ -373,7 +387,7 @@ export async function getOrdersPage(page = 1, pageSize = 10) {
 export async function getUserOrdersPage(
   userId: string,
   page = 1,
-  pageSize = 10
+  pageSize = 10,
 ) {
   const take = Math.max(1, pageSize);
   if (!userId) {
