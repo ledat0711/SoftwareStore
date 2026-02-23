@@ -1,11 +1,8 @@
 import Slider from "@/components/Slider";
 import Link from "next/link";
 import { ROLE_LABELS, Role } from "@/constants/role";
-import {
-  getLatestVisibleProducts,
-  searchVisibleProducts,
-  searchVisibleProductsAction,
-} from "@/lib/prisma";
+import { searchVisibleProducts, searchVisibleProductsAction } from "@/lib/prisma";
+import { pricingService, ProductWithPricing } from "@/lib/services/pricingService";
 import { auth } from "@/auth";
 import { Session } from "next-auth";
 import { Product } from "@/types/product";
@@ -56,8 +53,10 @@ export default async function HomePage({
   const params: SearchParams = await searchParams;
   const query: string = params.q?.toString().trim() ?? "";
 
-  const recommended: Product[] = await getLatestVisibleProducts(4);
-  const searchResults: Product[] = query.length > 0 ? await searchVisibleProducts(query, 12) : [];
+  const recommended: ProductWithPricing[] =
+    await pricingService.getLatestVisibleProductsWithPricing(4);
+  const searchResults: Product[] =
+    query.length > 0 ? await searchVisibleProducts(query, 12) : [];
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 grid gap-6">

@@ -36,7 +36,11 @@ import {
 
 type CartContextValue = {
   items: CartItem[];
+  cartId?: string | null;
+  couponCode?: string | null;
   addItem: (item: CartItemInput, quantity?: number) => Promise<void>;
+  applyCoupon: (code: string) => Promise<{ ok: boolean; message: string }>;
+  removeCoupon: () => Promise<void>;
   updateQuantity: (id: string, quantity: number) => void;
   removeItem: (id: string) => void;
   clear: () => void;
@@ -54,6 +58,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession();
 
   const [items, setItems] = useState<CartItem[]>(() => readCartItems());
+  const [cartId, setCartId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   //useEffect #1 – load cart theo trạng thái đăng nhập
@@ -88,10 +94,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           // các item trong giỏ hàng: truy xuất từ server
           const next = await fetchCartItems();
           if (!active) return;
-          setItems(next);
+          setItems(next.items);
+          setCartId(next.cartId ?? null);
+          setCouponCode(next.couponCode ?? null);
         } catch {
           if (!active) return;
           setItems([]);
+          setCartId(null);
+          setCouponCode(null);
         } finally {
           if (active) setReady(true);
         }
@@ -101,6 +111,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Trường hợp 2: CHƯA đăng nhập
       if (status === "unauthenticated") {
         setItems(readCartItems());
+        setCartId(null);
+        setCouponCode(null);
         setReady(true);
         return;
       }
@@ -148,7 +160,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (status === "authenticated") {
         // addCartItemOnServer(input.id, quantity): gọi API thêm sản phẩm vào giỏ hàng trên server
         const next = await addCartItemOnServer(input.id, quantity);
-        setItems(next);
+        setItems(next.items);
+        setCartId(next.cartId ?? null);
+        setCouponCode(next.couponCode ?? null);
         return;
       }
 
@@ -168,6 +182,47 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [ready, status]
   );
 
+  const applyCoupon = useCallback(
+    async (code: string) => {
+      if (status !== "authenticated") {
+        return { ok: false, message: "Vui lòng đăng nhập để áp dụng coupon" };
+      }
+      if (!cartId) {
+        return { ok: false, message: "Cart chưa sẵn sàng" };
+      }
+      try {
+        const response = await fetch("/api/coupons/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, cartId }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          return { ok: false, message: data?.error || "Không áp dụng được coupon" };
+        }
+        setCouponCode(data?.coupon?.code ?? null);
+        return { ok: true, message: "Áp dụng coupon thành công" };
+      } catch {
+        return { ok: false, message: "Không áp dụng được coupon" };
+      }
+    },
+    [cartId, status],
+  );
+
+  const removeCoupon = useCallback(async () => {
+    if (status !== "authenticated" || !cartId) return;
+    try {
+      await fetch("/api/coupons/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cartId }),
+      });
+      setCouponCode(null);
+    } catch {
+      // ignore
+    }
+  }, [cartId, status]);
+
   // updateQuantity & removeItem – cùng một nguyên lý
   // nếu đã đăng nhập => thao tác trên server
   // nếu chưa đăng nhập => thao tác trên localStorage
@@ -179,7 +234,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     (id: string, quantity: number) => {
       if (status === "authenticated") {
         void updateCartItemOnServer(id, quantity)
-          .then((next) => setItems(next))
+          .then((next) => {
+            setItems(next.items);
+            setCartId(next.cartId ?? null);
+            setCouponCode(next.couponCode ?? null);
+          })
           .catch(() => {}); // catch: cố tình bắt lấy lỗi, Không làm crash UI
         return;
       }
@@ -198,7 +257,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       if (status === "authenticated") {
         void removeCartItemOnServer(id)
-          .then((next) => setItems(next))
+          .then((next) => {
+            setItems(next.items);
+            setCartId(next.cartId ?? null);
+            setCouponCode(next.couponCode ?? null);
+          })
           .catch(() => {});
         return;
       }
@@ -217,7 +280,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // nếu đã login => thao tác trên server
     if (status === "authenticated") {
       void clearCartOnServer()
-        .then((next) => setItems(next))
+        .then((next) => {
+          setItems(next.items);
+          setCartId(next.cartId ?? null);
+          setCouponCode(next.couponCode ?? null);
+        })
         .catch(() => {});
       return;
     }
@@ -249,7 +316,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       items,
+      cartId,
+      couponCode,
       addItem,
+      applyCoupon,
+      removeCoupon,
       updateQuantity,
       removeItem,
       clear,
@@ -259,10 +330,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       items,
+      cartId,
+      couponCode,
       addItem,
       updateQuantity,
       removeItem,
       clear,
+      applyCoupon,
+      removeCoupon,
       totalItems,
       subtotal,
       ready,

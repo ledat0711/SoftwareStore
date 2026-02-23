@@ -1,5 +1,10 @@
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  cancelCouponReservation,
+  computeCartPricingWithDiscounts,
+  finalizeCouponUsage,
+} from "@/lib/discounts";
 
 // id và quantity không có optional vì đã validate ở bước trước
 type OrderItemInput = {
@@ -68,7 +73,8 @@ export async function createOrderFromCart(
   const endOfDay = new Date(startOfDay);
   endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
-  // vòng for để phòng trường hợp 2 người mua hàng cùng lúc, tạo đơn cùng mã code
+  // vòng for để phòng trường hợp 2 người mua hàng cùng lúc, 
+  // tạo đơn cùng mã code
   // retry tối đa 3 lần
   // nếu vẫn không được thì ném lỗi
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -125,6 +131,7 @@ export async function createOrderFromCart(
 
 export async function buildOrderItems(
   items: OrderItemInput[],
+  client: Prisma.TransactionClient | PrismaClient = prisma,
 ): Promise<BuiltOrderItems> {
   // map: chuẩn hóa (duyệt từng phần tử trong mảng và biến đổi thành phần tử mới. Nhận vào item, trả ra object mới)
   // filter: kiểm tra tính hợp lệ
@@ -184,7 +191,7 @@ export async function buildOrderItems(
   //   'id3'
   // );
   // 'id1', 'id2', 'id3' là các phần tử trong mảng productIds
-  const products = await prisma.product.findMany({
+  const products = await client.product.findMany({
     where: { id: { in: productIds }, isDeleted: false },
     select: { id: true, title: true, slug: true, image: true, price: true },
   });
@@ -358,6 +365,124 @@ const orderInclude = {
     },
   },
 };
+
+type DiscountedOrderParams = {
+  userId: string | null;
+  items: OrderItemInput[];
+  cartId: string;
+  couponCode?: string | null;
+  guestEmail?: string | null;
+  status?: OrderStatus;
+};
+
+export async function createOrderFromCartWithDiscounts({
+  userId,
+  items,
+  cartId,
+  couponCode,
+  guestEmail,
+  status = OrderStatus.PAID,
+}: DiscountedOrderParams) {
+  const { orderItems } = await buildOrderItems(items);
+
+  const pricedItems = orderItems.map((item) => ({
+    productId: item.productId,
+    quantity: item.quantity,
+    price: item.price,
+  }));
+
+  let usageId: string | undefined;
+  let couponId: string | undefined;
+  let couponCodeNormalized: string | undefined;
+  let discountTotal = 0;
+  let subtotal = 0;
+  let total = 0;
+
+  const now = new Date();
+  const startOfDay = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+  try {
+    const { pricing, coupon, usageId: reservedUsageId } =
+      await computeCartPricingWithDiscounts(pricedItems, {
+        couponCode: couponCode ?? undefined,
+        cartId,
+        userId,
+      });
+
+    usageId = reservedUsageId;
+    couponId = coupon?.id;
+    couponCodeNormalized = coupon?.code ?? undefined;
+    discountTotal = pricing.discounts.reduce((sum, d) => sum + d.amount, 0);
+    subtotal = pricing.subtotal;
+    total = pricing.total;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const dailyCount = await prisma.order.count({
+        where: {
+          createdAt: {
+            gte: startOfDay,
+            lt: endOfDay,
+          },
+        },
+      });
+
+      const code = generateOrderCode(now, dailyCount + 1 + attempt);
+
+      try {
+        const order = await prisma.order.create({
+          data: {
+            userId: userId ?? null,
+            guestEmail: guestEmail?.trim() || null,
+            subtotal,
+            discountTotal,
+            total,
+            status,
+            code,
+            couponId: couponId ?? null,
+            couponCode: couponCodeNormalized ?? null,
+            items: {
+              create: orderItems.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                discountAmount: 0,
+              })),
+            },
+          },
+          include: orderInclude,
+        });
+
+        if (usageId && couponId) {
+          const couponDiscount =
+            pricing.discounts.find((d) => d.id === couponId)?.amount ?? 0;
+          await finalizeCouponUsage({
+            usageId,
+            orderId: order.id,
+            amount: couponDiscount,
+          });
+        }
+
+        return order;
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          continue;
+        }
+        throw error;
+      }
+    }
+  } catch (error) {
+    if (usageId) {
+      await cancelCouponReservation(usageId);
+    }
+    throw error;
+  }
+
+  throw new Error("Unable to generate unique order code");
+}
 
 export async function getRecentOrders(limit = 30) {
   return prisma.order.findMany({

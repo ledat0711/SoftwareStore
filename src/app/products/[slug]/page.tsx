@@ -1,9 +1,8 @@
-import { getProductBySlug, getRelatedProducts } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "./AddToCartButton";
-import { Product } from "@/types/product";
 import { currency } from "@/lib/helpers";
+import { pricingService, ProductWithPricing } from "@/lib/services/pricingService";
 
 // Server function đặc biệt của Next.js
 // Hiển thị ở Thẻ Meta trong thẻ Header của trang
@@ -14,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug }: { slug: string } = await params;
-  const product: Product | null = await getProductBySlug(slug);
+  const product = await pricingService.getProductWithPricing(slug);
 
   if (!product) {
     return { title: "Không tìm thấy sản phẩm" };
@@ -42,7 +41,8 @@ export default async function ProductDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug }: { slug: string } = await params;
-  const mainProduct: Product | null = await getProductBySlug(slug);
+  const mainProduct: ProductWithPricing | null =
+    await pricingService.getProductWithPricing(slug);
 
   if (!mainProduct) {
     return (
@@ -53,10 +53,14 @@ export default async function ProductDetail({
     );
   }
 
-  const relatedProduct: Product[] = await getRelatedProducts(
-    mainProduct.id,
-    mainProduct.category
-  );
+  const relatedProduct: ProductWithPricing[] = (
+    await pricingService.getVisibleProductsWithPricing(
+      mainProduct.category ? [mainProduct.category] : [],
+      []
+    )
+  )
+    .filter((p) => p.id !== mainProduct.id)
+    .slice(0, 4);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white ">
@@ -100,14 +104,35 @@ export default async function ProductDetail({
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
-              <span className="text-3xl font-black text-slate-900">
-                {currency(mainProduct.price)}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-3xl font-black text-slate-900">
+                  {currency(mainProduct.pricing.finalPrice)}
+                </span>
+                {mainProduct.pricing.discountAmount > 0 && (
+                  <span className="text-base text-slate-500 line-through">
+                    {currency(mainProduct.pricing.originalPrice)}
+                  </span>
+                )}
+              </div>
+              {mainProduct.pricing.appliedDiscount && (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                  {mainProduct.pricing.appliedDiscount.label}
+                </span>
+              )}
             </div>
 
             <p className="leading-relaxed text-gray-700">
               {mainProduct.description ?? "Mo ta dang cap nhat"}
             </p>
+
+            {mainProduct.pricing.appliedDiscount?.expiresAt && (
+              <p className="text-sm text-amber-600">
+                Giảm giá đến ngày:{" "}
+                {mainProduct.pricing.appliedDiscount.expiresAt.toLocaleDateString(
+                  "vi-VN"
+                )}
+              </p>
+            )}
 
             <dl className="grid grid-cols-1 gap-3 rounded-xl border border-gray-100 bg-slate-50 p-4 text-sm text-slate-700 sm:grid-cols-2 max-w-[300px]">
               <div className="flex items-start gap-2">
@@ -184,7 +209,12 @@ export default async function ProductDetail({
                     <span>Rating: {r.rating ?? "4.8"}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>Price: {currency(r.price)}</span>
+                    <span>Price: {currency(r.pricing.finalPrice)}</span>
+                    {r.pricing.discountAmount > 0 && (
+                      <span className="text-slate-400 line-through">
+                        {currency(r.pricing.originalPrice)}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-auto grid grid-cols-2 items-stretch gap-2">
                     <Link

@@ -44,6 +44,8 @@ import { useCart } from "@/components/CartProvider";
 import { useToast } from "@/components/ToastProvider";
 import { currency } from "@/lib/helpers";
 import { handlePaypalErrorAction } from "./actions";
+import { PricingBreakdown } from "@/lib/discounts";
+import CouponInput from "@/components/CouponInput";
 
 type CheckoutItem = {
   id: string;
@@ -71,7 +73,7 @@ export default function CheckoutPage() {
   const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ?? "";
   const paypalCurrency = process.env.NEXT_PUBLIC_PAYPAL_CURRENCY ?? "USD";
   const { status, data: session } = useSession();
-  const { items, clear, ready } = useCart();
+  const { items, clear, ready, cartId, couponCode } = useCart();
   const toast = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paypalScriptReady, setPaypalScriptReady] = useState(false);
@@ -80,7 +82,18 @@ export default function CheckoutPage() {
   );
   const paypalButtonsRef = useRef<HTMLDivElement | null>(null);
   const [paidItems, setPaidItems] = useState<CheckoutItem[]>([]);
+  const [paidPricing, setPaidPricing] = useState<PricingBreakdown | null>(null);
   const [guestEmail, setGuestEmail] = useState(session?.user?.email ?? "");
+  const [pricing, setPricing] = useState<PricingBreakdown | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const couponUsageIdRef = useRef<string | null>(null);
+  const pendingPaypalOrderIdRef = useRef<string | null>(null);
+
+  // Reset cached coupon usage whenever cart or coupon changes to avoid sending stale reservation IDs.
+  useEffect(() => {
+    couponUsageIdRef.current = null;
+    pendingPaypalOrderIdRef.current = null;
+  }, [cartId, couponCode]);
 
   // checkoutItems: Chỉ dùng để gửi server / PayPal
   // → Không chứa title, image, price
@@ -113,6 +126,10 @@ export default function CheckoutPage() {
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+  const activePricing = paidPricing ?? pricing;
+  const discountTotal =
+    activePricing?.discounts?.reduce((s, d) => s + d.amount, 0) ?? 0;
+  const displayTotal = activePricing?.total ?? displaySubtotal - discountTotal;
 
   const hasPaid = paidItems.length > 0;
   const isGuest = status !== "authenticated";
@@ -124,6 +141,42 @@ export default function CheckoutPage() {
       setGuestEmail((prev) => (prev || session.user?.email) ?? "");
     }
   }, [session?.user?.email]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadPricing() {
+      if (!items.length || paidItems.length) {
+        setPricing(null);
+        return;
+      }
+      setPricingLoading(true);
+      try {
+        const response = await fetch("/api/pricing/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+            cartId,
+            coupon: couponCode || undefined,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok && data?.pricing && active) {
+          setPricing(data.pricing as PricingBreakdown);
+        } else if (active) {
+          setPricing(null);
+        }
+      } catch {
+        if (active) setPricing(null);
+      } finally {
+        if (active) setPricingLoading(false);
+      }
+    }
+    void loadPricing();
+    return () => {
+      active = false;
+    };
+  }, [items, paidItems, cartId, couponCode]);
 
   // mapOrderItems(): Convert response từ server → CheckoutItem chuẩn cho UI
   const mapOrderItems = (
@@ -264,195 +317,148 @@ export default function CheckoutPage() {
     // nếu nhấn vào nút Paypal => mở cửa sổ, sau đó không nhấn Complete Purchase và tắt cửa sổ. Thì chuyện gì xảy ra?
     // Về mặt nghiệp vụ: Trong thanh toán online, trường hợp này gọi là:
     // Abandoned Payment / Abandoned Checkout (Thanh toán bị bỏ dở)
-    const buttons = window.paypal?.Buttons({
-      style: { layout: "vertical", color: "gold", shape: "rect", label: "pay" },
-      // Khi bấm nút PayPal: PayPal SDK sẽ gọi hàm createOrder().
-      // Tóm gọn: gọi phương thức post https://api-m.sandbox.paypal.com/v2/checkout/orders
-      createOrder: async () => {
-        // setIsProcessing(true): UI chuyển sang trạng thái đang xử lý
-        // Khóa nút, hiện loading, không cho bấm nhiều lần.
-        setIsProcessing(true);
+    const requestPaypalOrderId = async (): Promise<string | null> => {
+      setIsProcessing(true);
+      couponUsageIdRef.current = null;
+      pendingPaypalOrderIdRef.current = null;
 
-        // Gửi request lên server
-        // checkoutItems: Danh sách { id, quantity } từ giỏ hàng
-        // email: Email guest nếu chưa đăng nhập
+      try {
         const response: Response = await fetch("/api/paypal/create-order", {
-          method: "POST",
-          //headers như bên dưới để thông báo cho server biết rằng chúng ta gửi dữ liệu JSON
-          headers: { "Content-Type": "application/json" },
-          // stringify: chuyển object JS thành chuỗi text JSON. VD: { name: "Dat", age: 30 } => '{"name":"Dat","age":30}'
-          // HTTP sẽ gửi chuỗi này tới server.
-          // trong trường hợp này là:
-          // Chúng ta gửi snapshot giỏ hàng + email người mua cho server để:
-          // Tạo Order
-          // Gọi PayPal API
-          // Lưu DB
-          // Trả lại orderId
-          body: JSON.stringify({ items: checkoutItems, email: orderEmail }),
-        });
-
-        // Nhận lại orderId (data.id) từ server
-        // PayPal SDK sẽ dùng id này để:
-        //    Mở popup PayPal
-        //    Gắn order PayPal vào giao dịch của user
-        const data = await response.json();
-        if (!response.ok || !data?.id) {
-          setIsProcessing(false);
-          toast.error("Không thể khởi tạo thanh toán PayPal.");
-          throw new Error("Unable to create PayPal order");
-        }
-
-        // không phải trả về cho component React của bạn
-        // Mà nó trả về cho PayPal SDK nội bộ
-
-        //4. PayPal SDK dùng data.id để làm gì?
-        // PayPal SDK cần PayPal Order ID để:
-        //    Gắn giao dịch vào tài khoản PayPal
-        //    Mở popup đúng đơn hàng
-        //    Biết phải thu bao nhiêu tiền
-        //    Sau khi user bấm “Complete Purchase” → SDK gửi orderID cho onApprove
-        // Bắt buộc phải return theo chuẩn PayPal:
-        // createOrder: () => {
-        //   return "PAYPAL_ORDER_ID";
-        // }
-        return data.id as string;
-
-        // return data.id
-        //      │
-        //      ▼
-        // PayPal SDK giữ orderId trong bộ nhớ nội bộ
-        //      │
-        //      ▼
-        // User đăng nhập PayPal
-        //      │
-        //      ▼
-        // User bấm "Complete Purchase"
-        //      │
-        //      ▼
-        // PayPal server xác nhận thanh toán
-        //      │
-        //      ▼
-        // PayPal SDK gọi lại onApprove()
-      },
-      // data trong onApprove đến từ đâu?
-      // Khi user bấm "Complete Purchase" trong popup PayPal
-      // PayPal server xác nhận thanh toán thành công
-      // PayPal SDK gọi onApprove(data)
-      // với data = { orderID: "PAYPAL_ORDER_ID", ... }
-      // orderID này chính là id mà chúng ta return trong createOrder
-      // PayPal SDK giữ nó trong bộ nhớ nội bộ suốt quá trình thanh toán.
-      // Vì vậy chúng ta không cần tự lưu nó ở đâu cả.
-      // orderID này dùng để gọi API capture trên server.
-      // Quy trình:
-      //CLIENT (Browser)
-      // │
-      // │ nhấn nút PayPal
-      // ▼
-      // createOrder()
-      // │
-      // │ fetch tới api/paypal/create-order
-      // ▼
-      // SERVER
-      // │
-      // │ tiếp tục fetch PayPal API
-      // ▼
-      // PAYPAL SERVER
-      // │
-      // │ return id = "5O190127TN364715T"
-      // ▼
-      // SERVER
-      // │
-      // │ return { id }
-      // ▼
-      // CLIENT
-      // │
-      // │ return id
-      // ▼
-      // PAYPAL SDK
-      // │ (giữ orderId)
-      // │
-      // │ popup thanh toán
-      // ▼
-      // User bấm "Complete Purchase"
-      //     │
-      //     ▼
-      // PayPal server xác nhận thanh toán
-      //     │
-      //     ▼
-      // PayPal SDK gọi onApprove({ orderID })
-      //     │
-      //     ▼
-      // onApprove gọi /api/paypal/capture với orderID
-      //     │
-      //     ▼
-      // Server gọi PayPal API capture
-      //     │
-      //     ▼
-      // PayPal trả về chi tiết đơn hàng đã thanh toán
-      //     │
-      //     ▼
-      // Server lưu đơn hàng vào DB, trả về chi tiết order cho UI
-      //     │
-      //     ▼
-      // UI cập nhật trạng thái thanh toán thành công
-      //     clear() cart
-      //     hiển thị thông báo thành công
-      //    │
-      //    ▼
-      // UI hiển thị đơn hàng đã thanh toán
-      //    (lấy từ paidItems)
-      //     └─ không phụ thuộc cart nữa
-      //         (vì cart đã clear)
-      //         (paidItems là snapshot lúc thanh toán)
-      //        (giúp tránh lỗi nếu user thay đổi cart sau thanh toán)
-      onApprove: async (data) => {
-        const response = await fetch("/api/paypal/capture", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId: data.orderID,
             items: checkoutItems,
             email: orderEmail,
+            cartId,
+            coupon: couponCode || undefined,
           }),
         });
 
-        const result = await response.json();
-        if (!response.ok) {
+        const data = (await response
+          .json()
+          .catch(() => null)) as
+          | { id?: string; couponUsageId?: string; error?: string }
+          | null;
+
+        if (!response.ok || typeof data?.id !== "string" || !data.id.trim()) {
+          const message =
+            (data && typeof data.error === "string" && data.error) ||
+            "Khong the khoi tao thanh toan PayPal.";
           setIsProcessing(false);
-          toast.error("Không thể lưu đơn hàng, vui lòng thử lại.");
-          throw new Error(result?.error ?? "Capture failed");
+          toast.error(message);
+          return null;
         }
 
-        const orderItems: CheckoutItem[] = mapOrderItems(result?.order?.items);
-        if (!orderItems.length) {
-          setIsProcessing(false);
-          toast.error("Đơn hàng không hợp lệ.");
+        couponUsageIdRef.current =
+          typeof data.couponUsageId === "string" ? data.couponUsageId : null;
+        return data.id.trim();
+      } catch (error) {
+        setIsProcessing(false);
+        const message =
+          error instanceof Error ? error.message : "PayPal create order failed";
+        toast.error(message);
+        return null;
+      }
+    };
+
+    const buttons = window.paypal?.Buttons({
+      style: { layout: "vertical", color: "gold", shape: "rect", label: "pay" },
+      onClick: async (_data, actions) => {
+        const orderId = await requestPaypalOrderId();
+        if (!orderId) {
+          await actions.reject();
           return;
         }
 
-        setPaidItems(orderItems);
-        clear();
-        toast.success("Thanh toán PayPal (sandbox) thành công!");
-        setIsProcessing(false);
+        pendingPaypalOrderIdRef.current = orderId;
+        await actions.resolve();
       },
-      onError: async (err) => {
-        setIsProcessing(false);
-        toast.error("Paypal sandbox lỗi. Vui lòng thử lại.");
+      createOrder: async () => {
+        const pendingOrderId = pendingPaypalOrderIdRef.current;
+        if (pendingOrderId) {
+          pendingPaypalOrderIdRef.current = null;
+          return pendingOrderId;
+        }
 
-        // Trigger server-side email + logging; do not block UI if it fails.
-        handlePaypalErrorAction({
+        const orderId = await requestPaypalOrderId();
+        return orderId ?? "";
+      },
+      onApprove: async (data) => {
+        try {
+          const orderId =
+            typeof data?.orderID === "string" ? data.orderID.trim() : "";
+          if (!orderId) {
+            setIsProcessing(false);
+            toast.error("Khong tim thay ma PayPal order.");
+            return;
+          }
+
+          const response = await fetch("/api/paypal/capture", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId,
+              items: checkoutItems,
+              email: orderEmail,
+              cartId,
+              coupon: couponCode || undefined,
+              couponUsageId: couponUsageIdRef.current || undefined,
+            }),
+          });
+
+          const result = await response.json();
+          if (!response.ok) {
+            const message =
+              (result && typeof result.error === "string" && result.error) ||
+              "Khong the luu don hang, vui long thu lai.";
+            setIsProcessing(false);
+            toast.error(message);
+            return;
+          }
+
+          const orderItems: CheckoutItem[] = mapOrderItems(result?.order?.items);
+          if (!orderItems.length) {
+            setIsProcessing(false);
+            toast.error("Don hang khong hop le.");
+            return;
+          }
+
+          setPaidItems(orderItems);
+          if (result?.pricing) {
+            setPaidPricing(result.pricing as PricingBreakdown);
+          }
+          clear();
+          setIsProcessing(false);
+          pendingPaypalOrderIdRef.current = null;
+          toast.success("Thanh toan PayPal (sandbox) thanh cong!");
+        } catch (error) {
+          setIsProcessing(false);
+          if (error instanceof Error) {
+            toast.error(error.message);
+          } else {
+            toast.error("PayPal capture failed, vui long thu lai.");
+          }
+          return;
+        }
+      },
+      onError: (err) => {
+        setIsProcessing(false);
+        pendingPaypalOrderIdRef.current = null;
+        toast.error("Paypal sandbox loi. Vui long thu lai.");
+
+        void handlePaypalErrorAction({
           items: checkoutItems,
           email: orderEmail,
           paypalOrderId:
             typeof err === "object" && err !== null && "orderID" in err
               ? (err as { orderID?: string }).orderID
               : undefined,
-        }).catch((actionError) => {
-          console.error("[checkout:onError] server action failed", actionError);
-        });
+        }).catch(() => {});
       },
       onCancel: () => {
         setIsProcessing(false);
+        couponUsageIdRef.current = null;
+        pendingPaypalOrderIdRef.current = null;
       },
     });
 
@@ -507,6 +513,8 @@ export default function CheckoutPage() {
     isGuest,
     isValidEmail,
     orderEmail,
+    cartId,
+    couponCode,
     toast,
   ]);
 
@@ -597,14 +605,53 @@ export default function CheckoutPage() {
         </section>
 
         <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Tóm tắt đơn</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Tóm tắt đơn hàng</h2>
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
             <div className="flex items-center justify-between">
               <span>Tạm tính</span>
               <span className="font-semibold text-slate-900">
-                {currency(displaySubtotal)}
+                {currency(activePricing?.subtotal ?? displaySubtotal)}
               </span>
             </div>
+
+            <div className="border-t border-dashed border-gray-200 pt-2">
+              <span className="text-xs font-semibold text-slate-600 block mb-1">
+                Giảm giá
+              </span>
+              {activePricing?.discounts?.length ? (
+                <div className="grid gap-1">
+                  {activePricing.discounts.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between text-xs text-emerald-700"
+                    >
+                      <span>{d.code ?? d.name}</span>
+                      <span>-{currency(d.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">Không áp dụng giảm giá</p>
+              )}
+            </div>
+
+            {!hasPaid && <CouponInput />}
+
+            <div className="border-t border-dashed border-gray-200 pt-2 flex items-center justify-between text-sm font-semibold text-slate-900">
+              <span>Tổng giảm</span>
+              <span>-{currency(discountTotal)}</span>
+            </div>
+
+            <div className="border-t border-dashed border-gray-200 pt-3 flex items-center justify-between text-base font-extrabold text-slate-900">
+              <span>{hasPaid ? "Đã thanh toán" : "Tổng thanh toán"}</span>
+              <span>{currency(displayTotal)}</span>
+            </div>
+
+            {pricingLoading ? (
+              <span className="text-xs text-slate-500">
+                Đang tính giảm giá…
+              </span>
+            ) : null}
           </div>
 
           {!hasPaid && (

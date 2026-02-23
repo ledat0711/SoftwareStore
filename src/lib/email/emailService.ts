@@ -135,7 +135,13 @@ async function sendWithLogging(payload: SendPayload) {
 
 export const emailService = {
   async sendOrderSuccess(params: {
-    order: { id: string; code: string; total: number };
+    order: {
+      id: string;
+      code: string;
+      total: number;
+      subtotal?: number | null;
+      discountTotal?: number | null;
+    };
     to: string;
     userId?: string | null;
   }) {
@@ -148,6 +154,8 @@ export const emailService = {
       react: createElement(OrderSuccessEmail, {
         orderCode: params.order.code,
         total: params.order.total,
+        subtotal: params.order.subtotal ?? params.order.total,
+        discountTotal: params.order.discountTotal ?? 0,
         orderId: params.order.id,
         appUrl: process.env.APP_URL,
       }),

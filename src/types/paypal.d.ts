@@ -3,12 +3,31 @@ type PaypalButtonsComponent = {
   close: () => void;
 };
 
+type PaypalButtonData = Record<string, unknown>;
+
+type PaypalOnClickActions = {
+  resolve: () => Promise<void> | void;
+  reject: () => Promise<void> | void;
+};
+
+type PaypalButtonActions = Record<string, unknown>;
+
 type PaypalButtons = (options: {
   style?: Record<string, unknown>;
-  createOrder: () => Promise<string>;
-  onApprove: (data: { orderID: string }) => Promise<void> | void;
+  onClick?: (
+    data: PaypalButtonData,
+    actions: PaypalOnClickActions,
+  ) => Promise<void> | void;
+  createOrder: (
+    data?: PaypalButtonData,
+    actions?: PaypalButtonActions,
+  ) => Promise<string> | string;
+  onApprove: (
+    data: { orderID?: string },
+    actions?: PaypalButtonActions,
+  ) => Promise<void> | void;
   onError?: (error: unknown) => void;
-  onCancel?: () => void;
+  onCancel?: (data?: PaypalButtonData) => void;
 }) => PaypalButtonsComponent;
 
 type PaypalNamespace = {

@@ -7,6 +7,7 @@ import {
   removeCartItemForUser,
   updateCartItemForUser,
 } from "@/lib/cart-db";
+import { prisma } from "@/lib/prisma";
 
 function normalizeProductId(value: unknown) {
   const id = String(value ?? "").trim();
@@ -25,14 +26,48 @@ async function requireUserId() {
   return session?.user?.id ?? null;
 }
 
+async function loadCartSummary(userId: string) {
+  const cart = await prisma.cart.findUnique({
+    where: { userId },
+    include: {
+      coupon: { select: { code: true } },
+      items: {
+        where: { product: { isDeleted: false } },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          product: {
+            select: { id: true, slug: true, title: true, price: true, image: true },
+          },
+        },
+      },
+    },
+  });
+
+  const items =
+    cart?.items.map((item) => ({
+      id: item.product.id,
+      slug: item.product.slug,
+      title: item.product.title,
+      price: item.product.price,
+      image: item.product.image ?? null,
+      quantity: item.quantity,
+    })) ?? [];
+
+  return {
+    items,
+    cartId: cart?.id ?? null,
+    couponCode: cart?.coupon?.code ?? null,
+  };
+}
+
 export async function GET() {
   const userId = await requireUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const items = await getCartItemsForUser(userId);
-  return NextResponse.json({ items });
+  const summary = await loadCartSummary(userId);
+  return NextResponse.json(summary);
 }
 
 export async function POST(request: Request) {
@@ -48,8 +83,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const items = await addCartItemForUser(userId, productId, body?.quantity);
-    return NextResponse.json({ items });
+    await addCartItemForUser(userId, productId, body?.quantity);
+    const summary = await loadCartSummary(userId);
+    return NextResponse.json(summary);
   } catch (error) {
     if (isNotFoundError(error)) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -75,8 +111,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const items = await updateCartItemForUser(userId, productId, quantity);
-  return NextResponse.json({ items });
+  await updateCartItemForUser(userId, productId, quantity);
+  const summary = await loadCartSummary(userId);
+  return NextResponse.json(summary);
 }
 
 export async function DELETE(request: Request) {
@@ -89,10 +126,12 @@ export async function DELETE(request: Request) {
   const productId = normalizeProductId(searchParams.get("productId"));
 
   if (productId) {
-    const items = await removeCartItemForUser(userId, productId);
-    return NextResponse.json({ items });
+    await removeCartItemForUser(userId, productId);
+    const summary = await loadCartSummary(userId);
+    return NextResponse.json(summary);
   }
 
   await clearCartForUser(userId);
-  return NextResponse.json({ items: [] });
+  const summary = await loadCartSummary(userId);
+  return NextResponse.json(summary);
 }

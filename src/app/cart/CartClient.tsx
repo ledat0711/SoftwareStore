@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
+import { PricingBreakdown } from "@/lib/discounts";
+import CouponInput from "@/components/CouponInput";
 
 export default function CartClient() {
   const {
     items,
+    cartId,
+    couponCode,
     updateQuantity,
     removeItem,
     clear,
@@ -15,6 +20,9 @@ export default function CartClient() {
     totalItems,
     ready,
   } = useCart();
+  const [pricing, setPricing] = useState<PricingBreakdown | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingError, setPricingError] = useState<string | null>(null);
   // useRouter() trả về đối tượng điều hướng
   const router = useRouter();
 
@@ -35,6 +43,45 @@ export default function CartClient() {
     // 4. Không reload HTML gốc
     router.push("/checkout");
   };
+
+  useEffect(() => {
+    let active = true;
+    async function loadPricing() {
+      if (!items.length) {
+        setPricing(null);
+        return;
+      }
+      setPricingLoading(true);
+      setPricingError(null);
+      try {
+        const response = await fetch("/api/pricing/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+            cartId,
+            coupon: couponCode || undefined,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data?.pricing) {
+          throw new Error(data?.error || "Pricing failed");
+        }
+        if (active) setPricing(data.pricing as PricingBreakdown);
+      } catch (error) {
+        if (active)
+          setPricingError(
+            error instanceof Error ? error.message : "Unable to load pricing",
+          );
+      } finally {
+        if (active) setPricingLoading(false);
+      }
+    }
+    void loadPricing();
+    return () => {
+      active = false;
+    };
+  }, [items, cartId, couponCode]);
 
   if (!ready) {
     return (
@@ -158,13 +205,45 @@ export default function CartClient() {
           <h2 className="text-lg font-semibold text-slate-900">
             Order summary
           </h2>
+          <CouponInput className="mt-3" />
           <div className="mt-4 grid gap-3 text-sm text-slate-700">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
               <span className="font-semibold text-slate-900">
-                {currency(subtotal)}
+                {currency(pricing?.subtotal ?? subtotal)}
               </span>
             </div>
+            {pricing?.discounts?.length ? (
+              <div className="grid gap-1">
+                {pricing.discounts.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between text-xs text-emerald-700"
+                  >
+                    <span>{d.name}</span>
+                    <span>-{currency(d.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between text-base font-bold text-slate-900">
+              <span>Total</span>
+              <span>
+                {currency(
+                  pricing?.total ??
+                    (pricing?.subtotal ?? subtotal) -
+                      (pricing?.discounts?.reduce(
+                        (s, d) => s + d.amount,
+                        0,
+                      ) ?? 0),
+                )}
+              </span>
+            </div>
+            {pricingLoading ? (
+              <span className="text-xs text-slate-500">Đang tính giảm giá…</span>
+            ) : pricingError ? (
+              <span className="text-xs text-red-600">{pricingError}</span>
+            ) : null}
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>Taxes</span>
               <span>Calculated at checkout</span>

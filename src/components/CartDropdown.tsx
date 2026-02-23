@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { currency } from "@/lib/helpers";
+import { PricingBreakdown } from "@/lib/discounts";
 
 export default function CartDropdown() {
   const { items, totalItems, subtotal, updateQuantity, removeItem } = useCart();
+  const [pricing, setPricing] = useState<PricingBreakdown | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -14,6 +17,40 @@ export default function CartDropdown() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadPricing() {
+      if (!items.length) {
+        setPricing(null);
+        return;
+      }
+      setPricingLoading(true);
+      try {
+        const response = await fetch("/api/pricing/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+          }),
+        });
+        const data = await response.json();
+        if (response.ok && data?.pricing && active) {
+          setPricing(data.pricing as PricingBreakdown);
+        } else if (active) {
+          setPricing(null);
+        }
+      } catch {
+        if (active) setPricing(null);
+      } finally {
+        if (active) setPricingLoading(false);
+      }
+    }
+    void loadPricing();
+    return () => {
+      active = false;
+    };
+  }, [items]);
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -156,8 +193,25 @@ export default function CartDropdown() {
           <div className="border-t border-gray-100 px-4 py-3">
             <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
               <span>Subtotal</span>
-              <span>{currency(subtotal)}</span>
+              <span>{currency(pricing?.subtotal ?? subtotal)}</span>
             </div>
+            {pricing?.discounts?.length ? (
+              <div className="mt-1 grid gap-1 text-xs text-emerald-700">
+                {pricing.discounts.map((d) => (
+                  <div key={d.id} className="flex justify-between">
+                    <span>{d.name}</span>
+                    <span>-{currency(d.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between font-semibold text-slate-900">
+                  <span>Total</span>
+                  <span>{currency(pricing.total)}</span>
+                </div>
+              </div>
+            ) : null}
+            {pricingLoading ? (
+              <p className="mt-1 text-[11px] text-slate-500">Đang tính giảm giá…</p>
+            ) : null}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Link
                 href="/cart"

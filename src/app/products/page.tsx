@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getFilteredVisibleProducts } from "@/lib/prisma";
 import { currency } from "@/lib/helpers";
-import { Product } from "@/types/product";
+import { pricingService, ProductWithPricing } from "@/lib/services/pricingService";
+import { GlobalDiscountBanner } from "@/components/GlobalDiscountBanner";
 import ProductFilters from "./ProductFilters";
 
 // url có thể là
@@ -23,14 +23,18 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  // Revalidate periodically to reflect admin changes to discounts
+  // (adjust in production, see revalidate export below)
   const params: SearchParams = await searchParams;
   const categoryFilter: string[] = toArray(params.category);
   const platformFilter: string[] = toArray(params.platform);
 
-  const products: Product[] = await getFilteredVisibleProducts(
-    categoryFilter,
-    platformFilter
-  );
+  const products: ProductWithPricing[] =
+    await pricingService.getVisibleProductsWithPricing(
+      categoryFilter,
+      platformFilter
+    );
+  const globalDiscount = await pricingService.getActiveGlobalDiscount();
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-white">
@@ -56,6 +60,15 @@ export default async function ProductsPage({
           </div>
         </header>
 
+        {globalDiscount ? (
+          <GlobalDiscountBanner
+            name={globalDiscount.name}
+            value={globalDiscount.value}
+            valueType={globalDiscount.valueType}
+            endsAt={globalDiscount.endsAt}
+          />
+        ) : null}
+
         <section className="grid gap-4 lg:grid-cols-[220px_1fr]">
           <aside className="h-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
             <ProductFilters
@@ -80,8 +93,18 @@ export default async function ProductsPage({
                     className="absolute inset-0 h-full w-full object-contain p-3 transition duration-200 group-hover:scale-[1.03]"
                   />
 
+                  {globalDiscount ? (
+                    <span className="absolute left-2 bottom-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800 shadow-sm">
+                      GLOBAL SALE
+                    </span>
+                  ) : null}
+                  {p.pricing.appliedDiscount && (
+                    <span className="absolute left-2 top-2 rounded-full bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
+                      {p.pricing.appliedDiscount.label}
+                    </span>
+                  )}
                   {p.badge && (
-                    <span className="absolute left-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    <span className="absolute right-2 top-2 rounded-full bg-gray-900 px-2 py-1 text-[11px] font-semibold text-white shadow-sm">
                       {p.badge}
                     </span>
                   )}
@@ -117,9 +140,16 @@ export default async function ProductsPage({
                   )}
 
                   <div className="mt-auto flex items-center justify-between pt-2">
-                    <strong className="text-sm font-extrabold text-slate-900">
-                      {currency(p.price)}
-                    </strong>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-extrabold text-slate-900">
+                        {currency(p.pricing.finalPrice)}
+                      </span>
+                      {p.pricing.discountAmount > 0 && (
+                        <span className="text-xs text-slate-500 line-through">
+                          {currency(p.pricing.originalPrice)}
+                        </span>
+                      )}
+                    </div>
                     <Link
                       href={`/products/${p.slug}`}
                       className="rounded-lg border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -136,3 +166,6 @@ export default async function ProductsPage({
     </main>
   );
 }
+
+// Incremental revalidation to reflect discount toggles without full redeploy
+export const revalidate = 120;

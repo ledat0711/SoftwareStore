@@ -80,6 +80,12 @@ export default function NavBar() {
           admin: true,
           icon: <Settings className="h-4 w-4" />,
         },
+        {
+          label: "Discounts",
+          href: "/admin/discounts",
+          admin: true,
+          icon: <Settings className="h-4 w-4" />,
+        },
       ]
     : [];
 
@@ -114,13 +120,7 @@ export default function NavBar() {
 }
 
 // ================== COMPONENT ==================
-function NavButton({
-  item,
-  active,
-}: {
-  item: NavItem;
-  active: boolean;
-}) {
+function NavButton({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}

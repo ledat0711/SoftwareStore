@@ -46,6 +46,30 @@ enum EmailStatus {
   FAILED
 }
 
+enum DiscountScope {
+  GLOBAL
+  PRODUCT
+  COUPON
+}
+
+enum DiscountValueType {
+  PERCENT
+  FIXED
+}
+
+enum DiscountStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+enum DiscountUsageStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
 // Prisma có 2 loại field:
 // A. Scalar fields → CÓ cột trong database
 // B. Relation fields → KHÔNG có cột trong database
@@ -70,6 +94,7 @@ model Product {
   updatedAt   DateTime @updatedAt
   cartItems   CartItem[] // Relation fields
   orderItems  OrderItem[] // Relation fields
+  discountProducts DiscountProduct[]
 }
 
 // 1 user có 1 cart (giỏ hàng)
@@ -89,6 +114,7 @@ model User {
   emailLogs EmailLog[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
+  discountUsages DiscountUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -184,8 +210,15 @@ model Cart {
   abandonedEmailSentAt DateTime?
   items                CartItem[]
   emailLogs            EmailLog[]
+  couponId             String?
+  coupon               Discount?  @relation("CartCoupon", fields: [couponId], references: [id], onDelete: SetNull)
+  discountTotal        Float      @default(0)
+  subtotal             Float?
+  discountUsages       DiscountUsage[]
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
+
+  @@index([couponId])
 }
 
 model CartItem {
@@ -206,14 +239,22 @@ model Order {
   userId    String?
   user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   code      String      @unique
+  subtotal  Float?
+  discountTotal Float   @default(0)
   total     Float
   email     String?
   guestEmail String?
   status    OrderStatus @default(PAID)
+  couponId  String?
+  coupon    Discount?   @relation("OrderCoupon", fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode String?    @db.VarChar(5)
   items     OrderItem[]
   emailLogs EmailLog[]
+  discountUsages DiscountUsage[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
+
+  @@index([couponId])
 }
 
 model OrderItem {
@@ -222,6 +263,7 @@ model OrderItem {
   productId String?
   quantity  Int      @default(1)
   price     Float
+  discountAmount Float @default(0)
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
@@ -252,4 +294,66 @@ model EmailLog {
   @@index([orderId])
   @@index([cartId])
   @@index([userId])
+}
+
+model Discount {
+  id          String              @id @default(cuid())
+  code        String?             @unique @db.VarChar(5)
+  name        String
+  description String?
+  scope       DiscountScope
+  value       Float               // percent (0-100) or fixed amount depending on valueType
+  valueType   DiscountValueType
+  maxValue    Float?
+  startAt     DateTime?
+  endAt       DateTime?
+  minOrderAmount Float?           @default(0)
+  allowGuest  Boolean             @default(true)
+  maxUsage    Int?
+  maxUsagePerUser Int?
+  usageCount  Int                 @default(0)
+  status      DiscountStatus      @default(ACTIVE)
+  products    DiscountProduct[]
+  usages      DiscountUsage[]
+  carts       Cart[]              @relation("CartCoupon")
+  orders      Order[]             @relation("OrderCoupon")
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([scope, status])
+  @@index([startAt])
+  @@index([endAt])
+}
+
+model DiscountProduct {
+  discountId String
+  productId  String
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([discountId, productId])
+  @@index([productId])
+}
+
+model DiscountUsage {
+  id         String               @id @default(cuid())
+  discountId String
+  userId     String?
+  cartId     String?
+  orderId    String?
+  amount     Float                @default(0)
+  status     DiscountUsageStatus  @default(PENDING)
+  discount   Discount             @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  user       User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cart       Cart?                @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  order      Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([userId, discountId])
+  @@index([cartId])
+  @@index([orderId])
+  @@unique([discountId, cartId])
+  @@unique([discountId, orderId])
 }

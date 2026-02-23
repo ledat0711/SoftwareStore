@@ -38,7 +38,13 @@ export const orderService = {
 
     if (recipient) {
       await emailService.sendOrderSuccess({
-        order: { id: order.id, code: order.code, total: order.total },
+        order: {
+          id: order.id,
+          code: order.code,
+          total: order.total,
+          subtotal: order.subtotal ?? order.total,
+          discountTotal: order.discountTotal ?? 0,
+        },
         to: recipient,
         userId: order.userId,
       });

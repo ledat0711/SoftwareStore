@@ -5,6 +5,8 @@ export type OrderSuccessEmailProps = {
   orderCode: string;
   orderId: string;
   total: number;
+  subtotal?: number;
+  discountTotal?: number;
   appUrl?: string | null;
 };
 
@@ -12,16 +14,22 @@ export default function OrderSuccessEmail({
   orderCode,
   orderId,
   total,
+  subtotal,
+  discountTotal,
   appUrl,
 }: OrderSuccessEmailProps) {
   const safeAppUrl = appUrl || "https://softwarestore.work.gd";
   const orderUrl = `${safeAppUrl}/orders/${orderId}`;
-  const totalFormatted = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(total);
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(n);
+  const totalFormatted = fmt(total);
+  const subtotalFormatted = fmt(subtotal ?? total);
+  const discountFormatted = fmt(discountTotal ?? 0);
 
   return (
     <AppLayout
@@ -37,6 +45,11 @@ export default function OrderSuccessEmail({
       <Text style={{ margin: "0 0 16px", color: "#0f172a" }}>
         Tổng thanh toán: <strong>{totalFormatted}</strong>.
       </Text>
+      {(discountTotal ?? 0) > 0 && (
+        <Text style={{ margin: "0 0 12px", color: "#0f172a" }}>
+          Giá trị hàng: {subtotalFormatted} · Giảm giá: -{discountFormatted}
+        </Text>
+      )}
       <Section style={{ margin: "12px 0 20px" }}>
         <PrimaryButton href={orderUrl} label="Xem chi tiết đơn hàng" />
       </Section>

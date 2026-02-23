@@ -1,0 +1,40 @@
+          // Chúng ta gửi snapshot giỏ hàng + email người mua cho server để:
+          // Tạo Order
+          // Gọi PayPal API
+          // Lưu DB
+          // Trả lại orderId
+          body: JSON.stringify({ items: checkoutItems, email: orderEmail }),
+        });
+
+        // Nhận lại orderId (data.id) từ server
+        // PayPal SDK sẽ dùng id này để:
+        //    Mở popup PayPal
+        //    Gắn order PayPal vào giao dịch của user
+        const data = await response.json();
+        if (!response.ok || !data?.id) {
+          setIsProcessing(false);
+          toast.error("Không thể khởi tạo thanh toán PayPal.");
+          throw new Error("Unable to create PayPal order");
+        }
+
+        // không phải trả về cho component React của bạn
+        // Mà nó trả về cho PayPal SDK nội bộ
+
+        //4. PayPal SDK dùng data.id để làm gì?
+        // PayPal SDK cần PayPal Order ID để:
+        //    Gắn giao dịch vào tài khoản PayPal
+        //    Mở popup đúng đơn hàng
+        //    Biết phải thu bao nhiêu tiền
+        //    Sau khi user bấm “Complete Purchase” → SDK gửi orderID cho onApprove
+        // Bắt buộc phải return theo chuẩn PayPal:
+        // createOrder: () => {
+        //   return "PAYPAL_ORDER_ID";
+        // }
+        return data.id as string;
+
+        // return data.id
+        //      │
+        //      ▼
+        // PayPal SDK giữ orderId trong bộ nhớ nội bộ
+        //      │
+        //      ▼
