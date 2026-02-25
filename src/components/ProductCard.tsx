@@ -49,7 +49,7 @@ export default function ProductCard({ product, globalSale = false }: Props) {
           </span>
         )}
         {product.badge && (
-          <span className="absolute top-2 left-2 bg-gray-900 text-white text-xs px-2 py-1 rounded-full font-semibold">
+          <span className="absolute top-2 right-2 bg-gray-900 text-white text-xs px-2 py-1 rounded-full font-semibold">
             {product.badge}
           </span>
         )}
