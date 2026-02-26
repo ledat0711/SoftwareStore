@@ -141,6 +141,37 @@ export async function loadAutomaticDiscounts(
   });
 }
 
+async function filterAutomaticDiscountsByPerUserLimit(
+  discounts: DiscountWithProducts[],
+  userId?: string | null,
+  tx: TxClient = prisma,
+) {
+  if (!userId) return discounts;
+
+  const perUserLimited = discounts.filter((d) => (d.maxUsagePerUser ?? 0) > 0);
+  if (!perUserLimited.length) return discounts;
+
+  const usageRows = await tx.discountUsage.groupBy({
+    by: ["discountId"],
+    where: {
+      userId,
+      discountId: { in: perUserLimited.map((d) => d.id) },
+      status: DiscountUsageStatus.COMPLETED,
+    },
+    _count: { _all: true },
+  });
+
+  const usedByDiscountId = new Map(
+    usageRows.map((row) => [row.discountId, row._count._all]),
+  );
+
+  return discounts.filter((discount) => {
+    if (!discount.maxUsagePerUser) return true;
+    const used = usedByDiscountId.get(discount.id) ?? 0;
+    return used < discount.maxUsagePerUser;
+  });
+}
+
 export function computePricing(
   items: PricedItem[],
   automaticDiscounts: DiscountWithProducts[],
@@ -214,6 +245,7 @@ type ReserveCouponParams = {
 type CouponValidationParams = {
   code: string;
   userId?: string | null;
+  cartId?: string;
   cartSubtotal: number;
   tx?: TxClient;
 };
@@ -221,6 +253,7 @@ type CouponValidationParams = {
 async function loadCouponForPreview({
   code,
   userId,
+  cartId,
   cartSubtotal,
   tx = prisma,
 }: CouponValidationParams) {
@@ -239,7 +272,8 @@ async function loadCouponForPreview({
   });
 
   if (!coupon) throw new Error("Coupon khong hop le hoac da het han");
-  if (!isWithinWindow(coupon, now)) throw new Error("Coupon khong con hieu luc");
+  if (!isWithinWindow(coupon, now))
+    throw new Error("Coupon khong con hieu luc");
   if (!coupon.allowGuest && !userId) {
     throw new Error("Coupon chi ap dung cho nguoi dung da dang nhap");
   }
@@ -251,7 +285,12 @@ async function loadCouponForPreview({
     const usage = await tx.discountUsage.count({
       where: {
         discountId: coupon.id,
-        status: { in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED] },
+        status: {
+          in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED],
+        },
+        ...(cartId
+          ? { NOT: { cartId, status: DiscountUsageStatus.PENDING } }
+          : {}),
       },
     });
     if (usage >= coupon.maxUsage) {
@@ -264,7 +303,12 @@ async function loadCouponForPreview({
       where: {
         discountId: coupon.id,
         userId,
-        status: { in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED] },
+        status: {
+          in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED],
+        },
+        ...(cartId
+          ? { NOT: { cartId, status: DiscountUsageStatus.PENDING } }
+          : {}),
       },
     });
     if (usageByUser >= coupon.maxUsagePerUser) {
@@ -300,7 +344,8 @@ export async function reserveCouponCode({
       });
 
       if (!coupon) throw new Error("Coupon không hợp lệ hoặc đã hết hạn");
-      if (!isWithinWindow(coupon, now)) throw new Error("Coupon không còn hiệu lực");
+      if (!isWithinWindow(coupon, now))
+        throw new Error("Coupon không còn hiệu lực");
       if (!coupon.allowGuest && !userId) {
         throw new Error("Coupon chỉ áp dụng cho người dùng đã đăng nhập");
       }
@@ -312,7 +357,10 @@ export async function reserveCouponCode({
         const usage = await tx.discountUsage.count({
           where: {
             discountId: coupon.id,
-            status: { in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED] },
+            status: {
+              in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED],
+            },
+            NOT: { cartId, status: DiscountUsageStatus.PENDING },
           },
         });
         if (usage >= coupon.maxUsage) {
@@ -325,7 +373,10 @@ export async function reserveCouponCode({
           where: {
             discountId: coupon.id,
             userId,
-            status: { in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED] },
+            status: {
+              in: [DiscountUsageStatus.PENDING, DiscountUsageStatus.COMPLETED],
+            },
+            NOT: { cartId, status: DiscountUsageStatus.PENDING },
           },
         });
         if (usageByUser >= coupon.maxUsagePerUser) {
@@ -376,7 +427,9 @@ export async function reserveCouponCode({
 export async function cancelCouponReservation(usageId: string) {
   await prisma.$transaction(
     async (tx) => {
-      const usage = await tx.discountUsage.findUnique({ where: { id: usageId } });
+      const usage = await tx.discountUsage.findUnique({
+        where: { id: usageId },
+      });
       if (!usage || usage.status !== DiscountUsageStatus.PENDING) return;
 
       await tx.discountUsage.update({
@@ -401,7 +454,9 @@ export async function finalizeCouponUsage({
 }: FinalizeParams) {
   await prisma.$transaction(
     async (tx) => {
-      const usage = await tx.discountUsage.findUnique({ where: { id: usageId } });
+      const usage = await tx.discountUsage.findUnique({
+        where: { id: usageId },
+      });
       if (!usage) return;
       if (usage.status === DiscountUsageStatus.COMPLETED) return;
 
@@ -424,6 +479,96 @@ export async function finalizeCouponUsage({
   );
 }
 
+type FinalizeAutomaticDiscountUsagesParams = {
+  orderId: string;
+  userId?: string | null;
+  discounts: PricingDiscountLine[];
+};
+
+export async function finalizeAutomaticDiscountUsages({
+  orderId,
+  userId,
+  discounts,
+}: FinalizeAutomaticDiscountUsagesParams) {
+  const automaticDiscounts = discounts.filter(
+    (line) =>
+      line.amount > 0 &&
+      (line.scope === DiscountScope.GLOBAL ||
+        line.scope === DiscountScope.PRODUCT),
+  );
+  if (!automaticDiscounts.length) return;
+
+  // Defensive dedupe: pricing should already aggregate by discount id.
+  const uniqueByDiscountId = new Map<string, PricingDiscountLine>();
+  for (const line of automaticDiscounts) {
+    if (!uniqueByDiscountId.has(line.id)) {
+      uniqueByDiscountId.set(line.id, line);
+    }
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      for (const line of uniqueByDiscountId.values()) {
+        const amount = clampMoney(line.amount);
+        const existingUsage = await tx.discountUsage.findFirst({
+          where: {
+            discountId: line.id,
+            orderId,
+          },
+        });
+
+        if (existingUsage) {
+          const nextUserId = userId ?? existingUsage.userId ?? null;
+          if (existingUsage.status !== DiscountUsageStatus.COMPLETED) {
+            await tx.discountUsage.update({
+              where: { id: existingUsage.id },
+              data: {
+                status: DiscountUsageStatus.COMPLETED,
+                userId: nextUserId,
+                amount,
+                cartId: null,
+              },
+            });
+
+            await tx.discount.update({
+              where: { id: line.id },
+              data: { usageCount: { increment: 1 } },
+            });
+          } else if (
+            existingUsage.amount !== amount ||
+            existingUsage.userId !== nextUserId
+          ) {
+            await tx.discountUsage.update({
+              where: { id: existingUsage.id },
+              data: {
+                userId: nextUserId,
+                amount,
+              },
+            });
+          }
+          continue;
+        }
+
+        await tx.discountUsage.create({
+          data: {
+            discountId: line.id,
+            userId: userId ?? null,
+            orderId,
+            amount,
+            status: DiscountUsageStatus.COMPLETED,
+          },
+        });
+
+        await tx.discount.update({
+          where: { id: line.id },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
+    },
+    { isolationLevel: "Serializable" },
+  );
+}
+
 export async function computeCartPricingWithDiscounts(
   items: PricedItem[],
   options: {
@@ -437,10 +582,17 @@ export async function computeCartPricingWithDiscounts(
     items.reduce((sum, item) => sum + item.price * item.quantity, 0),
   );
 
-  const automaticDiscounts = (
+  const automaticDiscountCandidates = (
     await loadAutomaticDiscounts(items.map((i) => i.productId))
   ).filter(
-    (d) => !d.minOrderAmount || subtotal >= (d.minOrderAmount ?? 0),
+    (d) =>
+      (!d.minOrderAmount || subtotal >= (d.minOrderAmount ?? 0)) &&
+      (!d.maxUsage || d.usageCount < d.maxUsage),
+  );
+
+  const automaticDiscounts = await filterAutomaticDiscountsByPerUserLimit(
+    automaticDiscountCandidates,
+    options.userId ?? null,
   );
 
   let coupon: DiscountWithProducts | null = null;
@@ -459,10 +611,15 @@ export async function computeCartPricingWithDiscounts(
     coupon = await loadCouponForPreview({
       code: options.couponCode,
       userId: options.userId ?? null,
+      cartId: options.cartId,
       cartSubtotal: subtotal,
     });
   }
 
-  const pricing = computePricing(items, automaticDiscounts, coupon ?? undefined);
+  const pricing = computePricing(
+    items,
+    automaticDiscounts,
+    coupon ?? undefined,
+  );
   return { pricing, coupon, usageId };
 }

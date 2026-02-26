@@ -46,12 +46,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No valid items" }, { status: 400 });
   }
 
-  const { pricing } = await computeCartPricingWithDiscounts(pricedItems, {
-    couponCode: couponCode || undefined,
-    cartId: cartId || undefined,
-    userId,
-    reserveCoupon: false, // preview only, do not hold usage
-  });
+  try {
+    const { pricing } = await computeCartPricingWithDiscounts(pricedItems, {
+      couponCode: couponCode || undefined,
+      cartId: cartId || undefined,
+      userId,
+      reserveCoupon: false, // preview only, do not hold usage
+    });
 
-  return NextResponse.json({ pricing });
+    return NextResponse.json({ pricing });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unable to preview pricing";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }

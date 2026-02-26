@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   cancelCouponReservation,
   computeCartPricingWithDiscounts,
+  finalizeAutomaticDiscountUsages,
   finalizeCouponUsage,
 } from "@/lib/discounts";
 
@@ -465,6 +466,12 @@ export async function createOrderFromCartWithDiscounts({
             amount: couponDiscount,
           });
         }
+
+        await finalizeAutomaticDiscountUsages({
+          orderId: order.id,
+          userId,
+          discounts: pricing.discounts,
+        });
 
         return order;
       } catch (error) {
